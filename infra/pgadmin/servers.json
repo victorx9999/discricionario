@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Discricionario - Local",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "discretionary",
+      "Username": "postgres",
+      "SSLMode": "prefer",
+      "Comment": "Banco local do ambiente de desenvolvimento (docker compose)"
+    }
+  }
+}

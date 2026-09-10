@@ -1,0 +1,84 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: discricionario-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-discretionary}
+      POSTGRES_USER: ${DATABASE_USER:-postgres}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-postgres}
+    ports:
+      - '${DATABASE_EXTERNAL_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DATABASE_USER:-postgres} -d ${DATABASE_NAME:-discretionary}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - discricionario-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: discricionario-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      API_PREFIX: ${API_PREFIX:-api}
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${DATABASE_NAME:-discretionary}
+      DATABASE_USER: ${DATABASE_USER:-postgres}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-postgres}
+      DATABASE_LOGGING: ${DATABASE_LOGGING:-false}
+      DATABASE_RUN_MIGRATIONS: ${DATABASE_RUN_MIGRATIONS:-true}
+      JWT_SECRET: ${JWT_SECRET:-troque-este-segredo-em-producao}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
+      UPLOAD_MAX_FILE_SIZE_MB: ${UPLOAD_MAX_FILE_SIZE_MB:-50}
+      POOL_PERCENTUAL: ${POOL_PERCENTUAL:-0.01}
+      LIMITE_DISCRICIONARIO: ${LIMITE_DISCRICIONARIO:-0.15}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+    ports:
+      - '${BACKEND_PORT:-3000}:3000'
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/test:/app/test
+      - backend_node_modules:/app/node_modules
+    networks:
+      - discricionario-net
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: discricionario-pgadmin
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@discricionario.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - '${PGADMIN_PORT:-5050}:80'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./infra/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    networks:
+      - discricionario-net
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+  backend_node_modules:
+
+networks:
+  discricionario-net:
+    driver: bridge
