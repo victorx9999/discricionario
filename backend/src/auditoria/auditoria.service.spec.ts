@@ -54,7 +54,7 @@ describe('AuditoriaService', () => {
     const { servico, repositorio } = criarServico();
 
     await servico.registrar({
-      acao: AcaoAuditoria.GRUPO_ALTERADO,
+      acao: AcaoAuditoria.USUARIO_ALTERADO,
       entidade: 'GRUPO',
       valorNovo: { nome: 'Grupo A' },
     });
@@ -78,7 +78,7 @@ describe('AuditoriaService', () => {
       const { servico, repositorio } = criarServico();
 
       await servico.registrarAlteracoes(
-        { acao: AcaoAuditoria.GRUPO_ALTERADO, entidade: 'GRUPO', entidadeId: 'grupo-1' },
+        { acao: AcaoAuditoria.USUARIO_ALTERADO, entidade: 'GRUPO', entidadeId: 'grupo-1' },
         { nome: 'Antigo', status: 'ATIVO', descricao: null },
         { nome: 'Novo', status: 'ATIVO', descricao: 'Descrição nova' },
         ['nome', 'status', 'descricao'],
@@ -109,7 +109,7 @@ describe('AuditoriaService', () => {
       const { servico, repositorio } = criarServico();
 
       await servico.registrarAlteracoes(
-        { acao: AcaoAuditoria.GRUPO_ALTERADO, entidade: 'GRUPO' },
+        { acao: AcaoAuditoria.USUARIO_ALTERADO, entidade: 'GRUPO' },
         { descricao: null },
         { descricao: '' },
         ['descricao'],
