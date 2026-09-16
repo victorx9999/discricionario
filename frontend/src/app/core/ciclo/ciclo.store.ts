@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, map, tap } from 'rxjs';
 import { ApiService } from '../http/api.service';
-import { Ciclo } from '../models/api.models';
+import { Ciclo, ResultadoPaginado } from '../models/api.models';
 
 const CHAVE_ANO = 'discricionario.ciclo';
 
@@ -37,7 +37,8 @@ export class CicloStore {
   /** Carrega a lista de ciclos e escolhe o ativo quando ainda não há seleção. */
   carregar(): Observable<Ciclo[]> {
     this._carregando.set(true);
-    return this.api.get<Ciclo[]>('ciclos').pipe(
+    return this.api.get<ResultadoPaginado<Ciclo>>('ciclos', { limit: 500 }).pipe(
+      map((resposta) => resposta.data),
       tap({
         next: (ciclos) => {
           const ordenados = [...ciclos].sort((a, b) => b.ano - a.ano);

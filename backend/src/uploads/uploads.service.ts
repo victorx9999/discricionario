@@ -299,36 +299,15 @@ export class UploadsService {
 
   /** Layout esperado de cada base — orienta a tela de upload. */
   obterLayouts() {
-    const mapear = (colunas: typeof COLUNAS_BASE_PRINCIPAL) =>
-      colunas.map((coluna) => ({
-        coluna: coluna.rotulo,
-        obrigatoria: coluna.obrigatoria,
-        tipo: coluna.tipo,
-        cabecalhosAceitos: coluna.cabecalhos,
-        campoDeDecisao: Boolean(coluna.decisao),
-      }));
+    const dividir = (colunas: typeof COLUNAS_BASE_PRINCIPAL) => ({
+      obrigatorias: colunas.filter((coluna) => coluna.obrigatoria).map((coluna) => coluna.rotulo),
+      opcionais: colunas.filter((coluna) => !coluna.obrigatoria).map((coluna) => coluna.rotulo),
+    });
 
-    return {
-      [TipoBase.PRINCIPAL]: {
-        tabela: 'TBPR_Simuladores',
-        colunas: mapear(COLUNAS_BASE_PRINCIPAL),
-      },
-      [TipoBase.ACRESCIMO]: {
-        tabela: 'TBPR_Simuladores_Acres',
-        colunas: mapear(COLUNAS_BASE_ACRESCIMO),
-      },
-      formatoAceito: 'CSV UTF-8 (delimitador ; , tab ou | detectado automaticamente)',
-      modos: {
-        [ModoCarga.COMPLETA]:
-          'Reinicia o ciclo alvo: apaga comitês, ATAs e discricionários DAQUELE ano e recarrega a base. ' +
-          'Ciclos anteriores não são afetados. Exige confirmarReinicioDoCiclo=true.',
-        [ModoCarga.PARCIAL]:
-          'Atualiza e insere preservando FD, NOTA_DISCRICIONARIO, MOTIVO_DISCRICIONARIO, ' +
-          'OBSERVACAO_POSCOMITE e COD_MOTIVADOR. FPI_FINAL e VL_PR_F são recalculados.',
-      },
-      observacaoAcrescimo:
-        'A base de acréscimo é sempre recarregada por inteiro dentro do ciclo (truncate por ciclo).',
-    };
+    return [
+      { tipo: TipoBase.PRINCIPAL, ...dividir(COLUNAS_BASE_PRINCIPAL) },
+      { tipo: TipoBase.ACRESCIMO, ...dividir(COLUNAS_BASE_ACRESCIMO) },
+    ];
   }
 
   // ------------------------------------------------------------------

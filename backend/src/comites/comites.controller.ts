@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -167,7 +168,9 @@ export class ComitesController {
   @ApiOperation({ summary: 'ATA do comitê' })
   async ata(@Param('id', ParseUUIDPipe) id: string, @UsuarioAtual() usuario: UsuarioAutenticado) {
     const comite = await this.comitesService.buscarPorId(id, usuario);
-    return this.atasService.buscarPorComite(comite.id);
+    const ata = await this.atasService.buscarPorComite(comite.id);
+    if (!ata) throw new NotFoundException('Este comitê ainda não tem ATA');
+    return ata;
   }
 
   @Put(':id/ata')
