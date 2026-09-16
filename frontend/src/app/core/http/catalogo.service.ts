@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, shareReplay } from 'rxjs';
+import { Observable, map, shareReplay } from 'rxjs';
 import {
   Ciclo,
   Importacao,
@@ -19,7 +19,9 @@ export class CiclosService {
   private readonly api = inject(ApiService);
 
   listar(): Observable<Ciclo[]> {
-    return this.api.get<Ciclo[]>('ciclos');
+    return this.api
+      .get<ResultadoPaginado<Ciclo>>('ciclos', { limit: 500 })
+      .pipe(map((resposta) => resposta.data));
   }
 
   anos(): Observable<number[]> {
@@ -117,7 +119,7 @@ export class UploadsService {
   /** Prévia sem gravar nada — é o passo que evita carga errada. */
   previa(arquivo: File, tipoBase: string, modo: string): Observable<PreviaUpload> {
     const formulario = new FormData();
-    formulario.append('arquivo', arquivo, arquivo.name);
+    formulario.append('file', arquivo, arquivo.name);
     formulario.append('tipoBase', tipoBase);
     formulario.append('modo', modo);
     return this.api.upload<PreviaUpload>('uploads/previa', formulario);
@@ -130,7 +132,7 @@ export class UploadsService {
     opcoes: { confirmarReinicioDoCiclo?: boolean; vincularPorGrupoRanking?: boolean } = {},
   ): Observable<Importacao> {
     const formulario = new FormData();
-    formulario.append('arquivo', arquivo, arquivo.name);
+    formulario.append('file', arquivo, arquivo.name);
     formulario.append('tipoBase', tipoBase);
     formulario.append('modo', modo);
     if (opcoes.confirmarReinicioDoCiclo !== undefined) {
