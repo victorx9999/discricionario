@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Put,
   Query,
@@ -14,70 +15,163 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ContextoAuditoria } from '../auditoria/dto/registrar-auditoria.dto';
 import { ContextoRequisicao, Perfis, UsuarioAtual, UsuarioAutenticado } from '../auth/decorators';
-import { PerfilUsuario, StatusComite } from '../common/enums';
+import { PerfilUsuario } from '../common/enums';
+import { ListarParticipantesQueryDto } from '../participantes/dto';
+import { ParticipantesService } from '../participantes/participantes.service';
 import { ComitesService } from './comites.service';
 import {
   AtualizarComiteDto,
+  ConcluirComiteDto,
   CriarComiteDto,
-  ListarAnalisesQueryDto,
+  GerenciarParticipantesDto,
   ListarComitesQueryDto,
-  NavegacaoQueryDto,
+  SalvarAtaDto,
+  SalvarColunasDto,
 } from './dto';
+import { AtasService } from './services/atas.service';
+import { ColunasComiteService } from './services/colunas.service';
 
 @ApiTags('comites')
 @ApiBearerAuth()
 @Controller('comites')
 export class ComitesController {
-  constructor(private readonly comitesService: ComitesService) {}
+  constructor(
+    private readonly comitesService: ComitesService,
+    private readonly participantesService: ParticipantesService,
+    private readonly atasService: AtasService,
+    private readonly colunasService: ColunasComiteService,
+  ) {}
+
+  // ----------------------------------------------------------------
+  // Lista e detalhe
+  // ----------------------------------------------------------------
 
   @Get()
-  @ApiOperation({ summary: 'Lista de comitês' })
-  listar(@Query() query: ListarComitesQueryDto) {
-    return this.comitesService.listar(query);
+  @ApiOperation({
+    summary: 'Lista os comitês do ciclo, respeitando a visibilidade do perfil (?ciclo=2026)',
+  })
+  listar(@Query() query: ListarComitesQueryDto, @UsuarioAtual() usuario: UsuarioAutenticado) {
+    return this.comitesService.listar(query, usuario);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Detalha um comitê' })
-  buscar(@Param('id', ParseUUIDPipe) id: string) {
-    return this.comitesService.buscarPorId(id);
+  @ApiOperation({ summary: 'Detalha o comitê com responsáveis e ATA' })
+  buscar(@Param('id', ParseUUIDPipe) id: string, @UsuarioAtual() usuario: UsuarioAutenticado) {
+    return this.comitesService.buscarPorId(id, usuario);
   }
+
+  // ----------------------------------------------------------------
+  // Aba 1 — Avaliação Discricionária
+  // ----------------------------------------------------------------
 
   @Get(':id/participantes')
-  @ApiOperation({ summary: 'Tabela de participantes do comitê (paginada, com busca e filtros)' })
-  participantes(@Param('id', ParseUUIDPipe) id: string, @Query() query: ListarAnalisesQueryDto) {
-    return this.comitesService.listarAnalises(id, query);
-  }
-
-  @Get(':id/navegacao')
-  @ApiOperation({ summary: 'Navegação: primeiro, anterior, próximo ou último participante' })
-  navegar(@Param('id', ParseUUIDPipe) id: string, @Query() query: NavegacaoQueryDto) {
-    return this.comitesService.navegar(id, query);
-  }
-
-  @Get(':id/participantes/:analiseId')
-  @ApiOperation({ summary: 'Dados completos do participante selecionado no comitê' })
-  detalharAnalise(
+  @ApiOperation({ summary: 'Tabela de participantes do comitê, com os campos calculados' })
+  participantes(
     @Param('id', ParseUUIDPipe) id: string,
-    @Param('analiseId', ParseUUIDPipe) analiseId: string,
+    @Query() query: ListarParticipantesQueryDto,
+    @UsuarioAtual() usuario: UsuarioAutenticado,
   ) {
-    return this.comitesService.detalharAnalise(id, analiseId);
+    query.comiteId = id;
+    return this.participantesService.listar(query, usuario);
   }
 
   @Get(':id/resumo')
-  @ApiOperation({ summary: 'Resumo do comitê: pool, consolidação por nível de cargo e por modelo' })
-  resumo(@Param('id', ParseUUIDPipe) id: string) {
-    return this.comitesService.resumo(id);
+  @ApiOperation({
+    summary:
+      'Resumo por nível de cargo e modelo (HC Total, HC Máx., Redução, Aumento, HC c/Disc., Checagem), performance ponderada por VB e pool',
+  })
+  resumo(@Param('id', ParseUUIDPipe) id: string, @UsuarioAtual() usuario: UsuarioAutenticado) {
+    return this.comitesService.resumo(id, usuario);
   }
+
+  @Get(':id/colunas')
+  @ApiOperation({ summary: 'Layout da tabela do comitê (o salvo pelo Atendimento ou o padrão)' })
+  colunas(@Param('id', ParseUUIDPipe) id: string, @UsuarioAtual() usuario: UsuarioAutenticado) {
+    return this.comitesService
+      .buscarPorId(id, usuario)
+      .then((comite) => this.colunasService.obter(comite.id));
+  }
+
+  @Put(':id/colunas')
+  @Perfis(PerfilUsuario.ADMIN, PerfilUsuario.ATENDIMENTO)
+  @ApiOperation({ summary: 'Salva o layout da tabela: colunas visíveis, ordem, largura e rótulos' })
+  async salvarColunas(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SalvarColunasDto,
+    @UsuarioAtual() usuario: UsuarioAutenticado,
+    @ContextoRequisicao() contexto: ContextoAuditoria,
+  ) {
+    const comite = await this.comitesService.buscarPorId(id, usuario);
+    return this.colunasService.salvar(comite, dto, usuario, contexto);
+  }
+
+  @Delete(':id/colunas')
+  @Perfis(PerfilUsuario.ADMIN, PerfilUsuario.ATENDIMENTO)
+  @ApiOperation({ summary: 'Restaura o layout padrão da tabela' })
+  async restaurarColunas(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UsuarioAtual() usuario: UsuarioAutenticado,
+    @ContextoRequisicao() contexto: ContextoAuditoria,
+  ) {
+    const comite = await this.comitesService.buscarPorId(id, usuario);
+    return this.colunasService.restaurarPadrao(comite, usuario, contexto);
+  }
+
+  // ----------------------------------------------------------------
+  // Aba 2 — Distribuição do Pool
+  // ----------------------------------------------------------------
 
   @Get(':id/pool')
-  @ApiOperation({ summary: 'Pool do comitê (total, utilizado, disponível e percentual)' })
-  pool(@Param('id', ParseUUIDPipe) id: string) {
-    return this.comitesService.pool(id);
+  @ApiOperation({
+    summary: 'Σ VLR_TEÓRICO, pool disponível (1%), pool consumido, saldo e % de utilização',
+  })
+  pool(@Param('id', ParseUUIDPipe) id: string, @UsuarioAtual() usuario: UsuarioAutenticado) {
+    return this.comitesService.pool(id, usuario);
   }
 
-  @Post()
+  @Get(':id/discricionarios')
+  @ApiOperation({ summary: 'Lista nominal dos discricionários lançados no comitê' })
+  discricionarios(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: ListarParticipantesQueryDto,
+    @UsuarioAtual() usuario: UsuarioAutenticado,
+  ) {
+    query.comiteId = id;
+    query.discricionario = 'com';
+    return this.participantesService.listar(query, usuario);
+  }
+
+  // ----------------------------------------------------------------
+  // Aba 3 — ATA
+  // ----------------------------------------------------------------
+
+  @Get(':id/ata')
+  @ApiOperation({ summary: 'ATA do comitê' })
+  async ata(@Param('id', ParseUUIDPipe) id: string, @UsuarioAtual() usuario: UsuarioAutenticado) {
+    const comite = await this.comitesService.buscarPorId(id, usuario);
+    return this.atasService.buscarPorComite(comite.id);
+  }
+
+  @Put(':id/ata')
   @Perfis(PerfilUsuario.ADMIN, PerfilUsuario.ATENDIMENTO, PerfilUsuario.CONSULTORIA)
-  @ApiOperation({ summary: 'Cria o comitê e monta a navegação de participantes' })
+  @ApiOperation({ summary: 'Cadastra ou atualiza a ATA (data, horários, observações e presentes)' })
+  async salvarAta(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SalvarAtaDto,
+    @UsuarioAtual() usuario: UsuarioAutenticado,
+    @ContextoRequisicao() contexto: ContextoAuditoria,
+  ) {
+    const comite = await this.comitesService.buscarPorId(id, usuario);
+    return this.atasService.salvar(comite, dto, usuario, contexto);
+  }
+
+  // ----------------------------------------------------------------
+  // Cadastro e ciclo de vida
+  // ----------------------------------------------------------------
+
+  @Post()
+  @Perfis(PerfilUsuario.ADMIN, PerfilUsuario.ATENDIMENTO)
+  @ApiOperation({ summary: 'Cria o comitê com responsáveis, backups e participantes selecionados' })
   criar(
     @Body() dto: CriarComiteDto,
     @UsuarioAtual() usuario: UsuarioAutenticado,
@@ -87,8 +181,8 @@ export class ComitesController {
   }
 
   @Put(':id')
-  @Perfis(PerfilUsuario.ADMIN, PerfilUsuario.ATENDIMENTO, PerfilUsuario.CONSULTORIA)
-  @ApiOperation({ summary: 'Atualiza um comitê' })
+  @Perfis(PerfilUsuario.ADMIN, PerfilUsuario.ATENDIMENTO)
+  @ApiOperation({ summary: 'Atualiza o comitê' })
   atualizar(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AtualizarComiteDto,
@@ -98,37 +192,79 @@ export class ComitesController {
     return this.comitesService.atualizar(id, dto, usuario, contexto);
   }
 
-  @Post(':id/finalizar')
-  @Perfis(PerfilUsuario.ADMIN, PerfilUsuario.ATENDIMENTO)
-  @ApiOperation({ summary: 'Finaliza o comitê (exige todas as análises concluídas)' })
-  finalizar(
-    @Param('id', ParseUUIDPipe) id: string,
-    @UsuarioAtual() usuario: UsuarioAutenticado,
-    @ContextoRequisicao() contexto: ContextoAuditoria,
-  ) {
-    return this.comitesService.alterarSituacao(id, StatusComite.FINALIZADO, usuario, contexto);
+  @Get(':id/pendencias')
+  @ApiOperation({ summary: 'O que ainda impede a conclusão do comitê' })
+  pendencias(@Param('id', ParseUUIDPipe) id: string, @UsuarioAtual() usuario: UsuarioAutenticado) {
+    return this.comitesService.pendencias(id, usuario);
   }
 
-  @Post(':id/aprovar')
-  @Perfis(PerfilUsuario.ADMIN)
-  @ApiOperation({ summary: 'Aprova um comitê finalizado' })
-  aprovar(
+  @Patch(':id/concluir')
+  @Perfis(PerfilUsuario.ADMIN, PerfilUsuario.ATENDIMENTO, PerfilUsuario.CONSULTORIA)
+  @ApiOperation({ summary: 'Conclui o comitê (exige ATA completa e nenhuma pendência)' })
+  concluir(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ConcluirComiteDto,
+    @UsuarioAtual() usuario: UsuarioAutenticado,
+    @ContextoRequisicao() contexto: ContextoAuditoria,
+  ) {
+    return this.comitesService.concluir(id, dto ?? {}, usuario, contexto);
+  }
+
+  @Patch(':id/reabrir')
+  @Perfis(PerfilUsuario.ADMIN, PerfilUsuario.ATENDIMENTO)
+  @ApiOperation({ summary: 'Reabre um comitê concluído para edição' })
+  reabrir(
     @Param('id', ParseUUIDPipe) id: string,
     @UsuarioAtual() usuario: UsuarioAutenticado,
     @ContextoRequisicao() contexto: ContextoAuditoria,
   ) {
-    return this.comitesService.alterarSituacao(id, StatusComite.APROVADO, usuario, contexto);
+    return this.comitesService.reabrir(id, usuario, contexto);
+  }
+
+  @Post(':id/participantes')
+  @Perfis(PerfilUsuario.ADMIN, PerfilUsuario.ATENDIMENTO)
+  @ApiOperation({ summary: 'Vincula participantes ao comitê' })
+  vincular(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: GerenciarParticipantesDto,
+    @UsuarioAtual() usuario: UsuarioAutenticado,
+    @ContextoRequisicao() contexto: ContextoAuditoria,
+  ) {
+    return this.comitesService.adicionarParticipantes(id, dto.participanteIds, usuario, contexto);
+  }
+
+  @Delete(':id/participantes')
+  @Perfis(PerfilUsuario.ADMIN, PerfilUsuario.ATENDIMENTO)
+  @ApiOperation({ summary: 'Desvincula participantes (libera o registro e zera o discricionário)' })
+  desvincular(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: GerenciarParticipantesDto,
+    @UsuarioAtual() usuario: UsuarioAutenticado,
+    @ContextoRequisicao() contexto: ContextoAuditoria,
+  ) {
+    return this.comitesService.removerParticipantes(id, dto.participanteIds, usuario, contexto);
   }
 
   @Delete(':id')
   @Perfis(PerfilUsuario.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Exclui um comitê e suas análises' })
+  @ApiOperation({ summary: 'Remove o comitê logicamente e libera seus participantes' })
   remover(
     @Param('id', ParseUUIDPipe) id: string,
     @UsuarioAtual() usuario: UsuarioAutenticado,
     @ContextoRequisicao() contexto: ContextoAuditoria,
   ) {
     return this.comitesService.remover(id, usuario, contexto);
+  }
+
+  @Patch(':id/restore')
+  @Perfis(PerfilUsuario.ADMIN)
+  @ApiOperation({ summary: 'Restaura um comitê removido' })
+  restaurar(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UsuarioAtual() usuario: UsuarioAutenticado,
+    @ContextoRequisicao() contexto: ContextoAuditoria,
+  ) {
+    return this.comitesService.restaurar(id, usuario, contexto);
   }
 }

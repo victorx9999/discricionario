@@ -4,13 +4,14 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AuditoriaModule } from './auditoria/auditoria.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard, PerfisGuard } from './auth/guards';
+import { CalculoModule } from './calculo/calculo.module';
+import { CiclosModule } from './ciclos/ciclos.module';
 import { HttpExcecaoFilter } from './common/filters';
 import { ComitesModule } from './comites/comites.module';
 import { carregarConfiguracao } from './config/configuracao';
-import { DashboardModule } from './dashboard/dashboard.module';
+import { ConsolidacaoModule } from './consolidacao/consolidacao.module';
 import { DatabaseModule } from './database/database.module';
-import { DiscricionarioModule } from './discricionario/discricionario.module';
-import { GruposModule } from './grupos/grupos.module';
+import { MotivosModule } from './motivos/motivos.module';
 import { ParticipantesModule } from './participantes/participantes.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
@@ -23,15 +24,17 @@ import { UsuariosModule } from './usuarios/usuarios.module';
       envFilePath: ['.env', '../.env'],
     }),
     DatabaseModule,
+    // Globais: praticamente todo módulo audita, calcula e resolve o ciclo.
     AuditoriaModule,
+    CalculoModule,
+    CiclosModule,
     UsuariosModule,
     AuthModule,
+    MotivosModule,
     ParticipantesModule,
-    GruposModule,
-    DiscricionarioModule,
     ComitesModule,
     UploadsModule,
-    DashboardModule,
+    ConsolidacaoModule,
   ],
   providers: [
     // Toda rota exige autenticação, salvo as marcadas com @Publico().

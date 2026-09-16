@@ -32,7 +32,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3000
-      API_PREFIX: ${API_PREFIX:-api}
+      API_PREFIX: ${API_PREFIX:-api/v1}
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
       DATABASE_NAME: ${DATABASE_NAME:-discretionary}
@@ -46,6 +46,8 @@ services:
       POOL_PERCENTUAL: ${POOL_PERCENTUAL:-0.01}
       LIMITE_DISCRICIONARIO: ${LIMITE_DISCRICIONARIO:-0.15}
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      SEED_ANOS: ${SEED_ANOS:-2025,2026}
+      SEED_QTD_PARTICIPANTES: ${SEED_QTD_PARTICIPANTES:-1200}
     ports:
       - '${BACKEND_PORT:-3000}:3000'
     volumes:

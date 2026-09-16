@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AuditoriaService } from '../auditoria/auditoria.service';
 import { ContextoAuditoria } from '../auditoria/dto/registrar-auditoria.dto';
-import { AcaoAuditoria } from '../common/enums';
+import { AcaoAuditoria, OperacaoAuditoria } from '../common/enums';
 import { ConfiguracaoApp } from '../config/configuracao';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { UsuarioAutenticado } from './decorators/usuario-atual.decorator';
@@ -27,6 +27,7 @@ export class AuthService {
     if (!usuario || !senhaValida || !usuario.ativo) {
       await this.auditoriaService.registrar({
         acao: AcaoAuditoria.LOGIN_FALHOU,
+        operacao: OperacaoAuditoria.LOGIN,
         entidade: 'USUARIO',
         entidadeId: usuario?.id ?? null,
         usuario: { id: usuario?.id ?? null, email: dto.email },
@@ -41,6 +42,7 @@ export class AuthService {
 
     await this.auditoriaService.registrar({
       acao: AcaoAuditoria.LOGIN,
+      operacao: OperacaoAuditoria.LOGIN,
       entidade: 'USUARIO',
       entidadeId: usuario.id,
       usuario: { id: usuario.id, email: usuario.email },
@@ -76,6 +78,7 @@ export class AuthService {
   async logout(usuario: UsuarioAutenticado, contexto?: ContextoAuditoria): Promise<{ mensagem: string }> {
     await this.auditoriaService.registrar({
       acao: AcaoAuditoria.LOGOUT,
+      operacao: OperacaoAuditoria.LOGIN,
       entidade: 'USUARIO',
       entidadeId: usuario.id,
       usuario: { id: usuario.id, email: usuario.email },

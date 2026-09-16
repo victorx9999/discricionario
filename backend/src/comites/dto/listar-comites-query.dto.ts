@@ -1,7 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsUUID } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsBoolean, IsEnum, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 import { PaginacaoQueryDto } from '../../common/dto';
-import { StatusComite } from '../../common/enums';
+import { StatusComite, TipoComite } from '../../common/enums';
 
 export class ListarComitesQueryDto extends PaginacaoQueryDto {
   @ApiPropertyOptional({ enum: StatusComite })
@@ -9,8 +10,25 @@ export class ListarComitesQueryDto extends PaginacaoQueryDto {
   @IsEnum(StatusComite)
   status?: StatusComite;
 
+  @ApiPropertyOptional({ enum: TipoComite })
+  @IsOptional()
+  @IsEnum(TipoComite)
+  tipo?: TipoComite;
+
   @ApiPropertyOptional()
   @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  area?: string;
+
+  @ApiPropertyOptional({ description: 'Comitês de um responsável específico' })
+  @IsOptional()
   @IsUUID('4')
-  grupoId?: string;
+  responsavelId?: string;
+
+  @ApiPropertyOptional({ description: 'Somente comitês sem ATA cadastrada' })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  semAta?: boolean;
 }

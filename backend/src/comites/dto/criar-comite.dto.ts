@@ -4,37 +4,50 @@ import {
   ArrayUnique,
   IsArray,
   IsEnum,
+  IsInt,
   IsOptional,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
+  Min,
   MinLength,
 } from 'class-validator';
-import { StatusComite } from '../../common/enums';
+import { TipoComite } from '../../common/enums';
 
 export class CriarComiteDto {
-  @ApiProperty({ example: 'Comitê Tecnologia — Ciclo 2026' })
+  @ApiProperty({ example: '100702', description: 'Código do grupo' })
+  @IsString({ message: 'codigo é obrigatório' })
+  @MinLength(1)
+  @MaxLength(50)
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  codigo: string;
+
+  @ApiProperty({ example: 'WMS PRIVATE', description: 'Nome do grupo' })
   @IsString({ message: 'nome é obrigatório' })
-  @MinLength(3)
+  @MinLength(2)
   @MaxLength(150)
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   nome: string;
 
-  @ApiProperty({ example: 'COM-TEC-2026' })
-  @IsString({ message: 'codigo é obrigatório' })
-  @MinLength(2)
-  @MaxLength(50)
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toUpperCase() : value))
-  codigo: string;
-
-  @ApiProperty({ description: 'Grupo que fornece os participantes do comitê' })
-  @IsUUID('4', { message: 'grupoId deve ser um UUID' })
-  grupoId: string;
-
-  @ApiPropertyOptional({ enum: StatusComite, default: StatusComite.RASCUNHO })
+  @ApiPropertyOptional({ example: 2027, description: 'Ciclo do comitê. Omitido, usa o ativo.' })
   @IsOptional()
-  @IsEnum(StatusComite, { message: 'status inválido' })
-  status?: StatusComite;
+  @Transform(({ value }) => Number.parseInt(value, 10))
+  @IsInt()
+  @Min(2000)
+  @Max(2999)
+  ciclo?: number;
+
+  @ApiPropertyOptional({ example: 'Private Banking' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  area?: string;
+
+  @ApiPropertyOptional({ enum: TipoComite, default: TipoComite.MISTO })
+  @IsOptional()
+  @IsEnum(TipoComite)
+  tipo?: TipoComite;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -44,11 +57,28 @@ export class CriarComiteDto {
 
   @ApiPropertyOptional({
     type: [String],
-    description: 'Subconjunto de participantes do grupo. Quando omitido, entram todos.',
+    description: 'Consultorias responsáveis. Aceita múltiplos nomes.',
   })
   @IsOptional()
   @IsArray()
   @ArrayUnique()
-  @IsUUID('4', { each: true })
+  @IsUUID('4', { each: true, message: 'consultoriaIds deve conter UUIDs' })
+  consultoriaIds?: string[];
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Atendimentos de backup. Aceita múltiplos nomes.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID('4', { each: true, message: 'backupIds deve conter UUIDs' })
+  backupIds?: string[];
+
+  @ApiPropertyOptional({ type: [String], description: 'Participantes selecionados na tabela' })
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID('4', { each: true, message: 'participanteIds deve conter UUIDs' })
   participanteIds?: string[];
 }

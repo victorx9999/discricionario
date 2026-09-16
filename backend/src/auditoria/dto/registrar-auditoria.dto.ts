@@ -1,9 +1,10 @@
-import { AcaoAuditoria, OrigemAuditoria } from '../../common/enums';
+import { AcaoAuditoria, OperacaoAuditoria, OrigemAuditoria } from '../../common/enums';
 
 /** Identificação mínima de quem executou a ação. */
 export interface UsuarioAuditoria {
   id?: string | null;
   email?: string | null;
+  nome?: string | null;
 }
 
 /** Contexto de requisição opcional (IP / user-agent). */
@@ -18,11 +19,15 @@ export interface ContextoAuditoria {
  */
 export interface RegistrarAuditoriaDto {
   acao: AcaoAuditoria;
+  /** INSERT / UPDATE / SOFT_DELETE / RESTORE — conforme o modelo de dados. */
+  operacao?: OperacaoAuditoria;
   entidade: string;
   entidadeId?: string | null;
-  usuario?: UsuarioAuditoria | null;
+  /** Ciclo (ano-base) em que a ação aconteceu. */
+  cicloId?: string | null;
   comiteId?: string | null;
   participanteId?: string | null;
+  usuario?: UsuarioAuditoria | null;
   campoAlterado?: string | null;
   valorAnterior?: unknown;
   valorNovo?: unknown;

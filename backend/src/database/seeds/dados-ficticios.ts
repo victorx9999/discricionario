@@ -1,6 +1,6 @@
 /**
- * Fontes de dados FICTÍCIOS usados apenas para desenvolvimento e testes.
- * Nenhum nome, matrícula ou valor aqui corresponde a pessoas ou remunerações reais.
+ * Fontes de dados FICTÍCIOS usados apenas em desenvolvimento e testes.
+ * Nenhum nome, matrícula ou valor corresponde a pessoas ou remunerações reais.
  */
 
 export const PRIMEIROS_NOMES = [
@@ -16,38 +16,67 @@ export const SOBRENOMES = [
   'Oliveira', 'Pereira', 'Quintana', 'Ribeiro', 'Santos', 'Teixeira',
 ];
 
+/** Níveis de cargo com o MANAGER_LEVEL correspondente (seção 4.1). */
+export const NIVEIS_CARGO = [
+  { nivel: 'Superintendente', managerLevel: 30, pesoBase: 3 },
+  { nivel: 'Gerente', managerLevel: 35, pesoBase: 2 },
+  { nivel: 'Coordenador', managerLevel: 40, pesoBase: 1.4 },
+  { nivel: 'Especialista', managerLevel: 45, pesoBase: 1.1 },
+  { nivel: 'Analista Sênior', managerLevel: 50, pesoBase: 0.9 },
+  { nivel: 'Analista Pleno', managerLevel: 55, pesoBase: 0.7 },
+];
+
 export const CARGOS = [
   'Analista de Sistemas',
   'Analista Financeiro',
-  'Analista de RH',
+  'Especialista de Produto',
   'Engenheiro de Software',
   'Cientista de Dados',
-  'Especialista de Produto',
+  'Consultor de Investimentos',
   'Coordenador de Operações',
-  'Gerente de Projetos',
-  'Consultor de Negócios',
+  'Gerente de Relacionamento',
+  'Superintendente Comercial',
   'Arquiteto de Soluções',
 ];
 
-export const NIVEIS_CARGO = ['Júnior', 'Pleno', 'Sênior', 'Especialista', 'Coordenador', 'Gerente'];
-
-export const MODELOS_AVALIACAO = ['Corporativo', 'Comercial', 'Executivo', 'Operações'];
+export const MODELOS_AVALIACAO = ['Institucional', 'Comunidade'];
 
 export const AREAS = [
   'Tecnologia',
+  'Private Banking',
+  'Investimentos',
+  'Operações',
   'Financeiro',
   'Recursos Humanos',
-  'Comercial',
-  'Operações',
-  'Jurídico',
-  'Marketing',
 ];
+
+/** Comitês fictícios no formato "código - nome" do GRUPO_RANKING. */
+export const GRUPOS_RANKING = [
+  { codigo: '100702', nome: 'WMS PRIVATE', area: 'Private Banking' },
+  { codigo: '100703', nome: 'WMS INVESTIMENTOS', area: 'Investimentos' },
+  { codigo: '100704', nome: 'TECNOLOGIA CORE', area: 'Tecnologia' },
+  { codigo: '100705', nome: 'OPERACOES E BACKOFFICE', area: 'Operações' },
+];
+
+/** Curva padrão de interpolação da nota: P1..P5 (FPI) -> N1..N5. */
+export const CURVA_PADRAO = {
+  p1: 0.8,
+  p2: 0.95,
+  p3: 1.1,
+  p4: 1.2,
+  p5: 1.35,
+  n1: 1,
+  n2: 2,
+  n3: 2.5,
+  n4: 3,
+  n5: 4,
+};
 
 /**
  * Gerador pseudoaleatório determinístico (mulberry32).
- * Mesma semente => mesma massa de dados, o que torna os testes reproduzíveis.
+ * Mesma semente => mesma massa, o que torna os testes reproduzíveis.
  */
-export function criarGerador(semente = 20260910) {
+export function criarGerador(semente = 20260913) {
   let estado = semente >>> 0;
 
   const proximo = (): number => {
@@ -60,12 +89,9 @@ export function criarGerador(semente = 20260910) {
 
   return {
     proximo,
-    /** Inteiro entre min e max (inclusive). */
     inteiro: (min: number, max: number): number => Math.floor(proximo() * (max - min + 1)) + min,
-    /** Decimal entre min e max com N casas. */
     decimal: (min: number, max: number, casas = 4): number =>
       Number((proximo() * (max - min) + min).toFixed(casas)),
-    /** Item aleatório de uma lista. */
     item: <T>(lista: readonly T[]): T => lista[Math.floor(proximo() * lista.length)],
   };
 }

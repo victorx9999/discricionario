@@ -44,6 +44,8 @@ export class UsuariosService {
   async listar(query: ListarUsuariosQueryDto): Promise<ResultadoPaginado<Usuario>> {
     const qb = this.repositorio.createQueryBuilder('usuario');
 
+    if (query.withDeleted) qb.withDeleted();
+
     if (query.search) {
       qb.andWhere(
         new Brackets((sub) => {
@@ -57,7 +59,7 @@ export class UsuariosService {
     if (query.perfil) qb.andWhere('usuario.perfil = :perfil', { perfil: query.perfil });
     if (query.ativo !== undefined) qb.andWhere('usuario.ativo = :ativo', { ativo: query.ativo });
 
-    qb.orderBy(resolverOrdenacao(query.sortBy, CAMPOS_ORDENACAO, 'nome'), resolverDirecao(query.sortOrder))
+    qb.orderBy(resolverOrdenacao(query.sortBy, CAMPOS_ORDENACAO, 'nome'), resolverDirecao(query.order))
       .skip(query.skip)
       .take(query.take);
 

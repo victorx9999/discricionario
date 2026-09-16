@@ -7,9 +7,9 @@ import { AuditoriaFrontendDto, resolverAcaoFrontend } from './dto/auditoria-fron
 import { ConsultarAuditoriaQueryDto } from './dto/consultar-auditoria-query.dto';
 import { ContextoAuditoria } from './dto/registrar-auditoria.dto';
 
-@ApiTags('logs-auditoria')
+@ApiTags('audit')
 @ApiBearerAuth()
-@Controller('logs-auditoria')
+@Controller('audit')
 export class AuditoriaController {
   constructor(private readonly auditoriaService: AuditoriaService) {}
 

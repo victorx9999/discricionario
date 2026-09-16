@@ -23,7 +23,8 @@
     "migration:run": "npm run typeorm -- migration:run",
     "migration:revert": "npm run typeorm -- migration:revert",
     "seed": "ts-node -r tsconfig-paths/register src/database/seeds/executar-seed.ts",
-    "seed:reset": "ts-node -r tsconfig-paths/register src/database/seeds/executar-seed.ts --reset"
+    "seed:reset": "ts-node -r tsconfig-paths/register src/database/seeds/executar-seed.ts --reset",
+    "seed:anos": "ts-node -r tsconfig-paths/register src/database/seeds/executar-seed.ts --reset --anos=2025,2026,2027"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",

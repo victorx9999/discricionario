@@ -10,7 +10,7 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: false });
   const config = app.get(ConfigService);
 
-  const prefixo = config.get<string>('prefixoApi') ?? 'api';
+  const prefixo = config.get<string>('prefixoApi') ?? 'api/v1';
   const porta = config.get<number>('porta') ?? 3000;
   const origens = config.get<string[]>('corsOrigins') ?? ['*'];
 
@@ -37,8 +37,9 @@ async function bootstrap(): Promise<void> {
     new DocumentBuilder()
       .setTitle('API — Discricionário de Remuneração')
       .setDescription(
-        'Gestão de discricionário: upload de bases, grupos, comitês, análise participante a ' +
-          'participante, controle de pool e auditoria completa.',
+        'Comitês Discricionários da Remuneração Variável: ciclos anuais com histórico, carga das ' +
+          'bases TBPR_Simuladores e TBPR_Simuladores_Acres, comitês, ATA, lançamento do FD, ' +
+          'controle de pool, resumos por nível de cargo e trilha de auditoria.',
       )
       .setVersion('1.0.0')
       .addBearerAuth()
@@ -56,8 +57,9 @@ async function bootstrap(): Promise<void> {
   logger.log(`API disponível em http://localhost:${porta}/${prefixo}`);
   logger.log(`Documentação Swagger em http://localhost:${porta}/${prefixo}/docs`);
   logger.log(
-    `Regras: pool = ${negocio.poolPercentual * 100}% do VLRTEORICO | ` +
-      `limite do discricionário = ±${negocio.limiteDiscricionario * 100}pp`,
+    `Premissas padrão de novos ciclos: pool = ${negocio.poolPercentual * 100}% do VLR_TEORICO | ` +
+      `limite do FD = ±${negocio.limiteDiscricionario * 100}pp. ` +
+      'Cada ciclo guarda as suas próprias premissas.',
   );
 }
 

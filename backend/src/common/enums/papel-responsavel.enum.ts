@@ -1,9 +1,15 @@
-/** Papel de um usuário responsável dentro de um grupo. */
+/**
+ * Papel de um usuário dentro do comitê.
+ *
+ * A regra de visibilidade (seção 2) usa estes papéis: Atendimento enxerga os
+ * comitês que criou e aqueles em que é backup; Consultoria enxerga apenas
+ * aqueles em que consta como responsável; Admin enxerga tudo.
+ */
 export enum PapelResponsavel {
-  /** Consultora responsável pelo grupo. */
-  CONSULTORA = 'CONSULTORA',
-  /** Atendimento que atua como backup do grupo. */
+  /** Consultoria responsável pelo comitê. */
+  CONSULTORIA = 'CONSULTORIA',
+  /** Atendimento de backup do comitê. */
   BACKUP = 'BACKUP',
-  /** Usuário que cadastrou o grupo. */
+  /** Usuário (Atendimento/Admin) que cadastrou o comitê. */
   CRIADOR = 'CRIADOR',
 }

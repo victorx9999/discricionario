@@ -45,7 +45,7 @@ export interface ConfiguracaoApp {
 export const carregarConfiguracao = (): ConfiguracaoApp => ({
   ambiente: process.env.NODE_ENV ?? 'development',
   porta: numero(process.env.PORT, 3000),
-  prefixoApi: process.env.API_PREFIX ?? 'api',
+  prefixoApi: process.env.API_PREFIX ?? 'api/v1',
   corsOrigins: (process.env.CORS_ORIGINS ?? '*').split(',').map((origem) => origem.trim()),
   banco: {
     host: process.env.DATABASE_HOST ?? 'localhost',

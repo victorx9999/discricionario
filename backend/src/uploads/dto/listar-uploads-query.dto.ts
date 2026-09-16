@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional } from 'class-validator';
 import { PaginacaoQueryDto } from '../../common/dto';
-import { ModoProcessamento, StatusImportacao, TipoBase } from '../../common/enums';
+import { ModoCarga, StatusImportacao, TipoBase } from '../../common/enums';
 
 export class ListarUploadsQueryDto extends PaginacaoQueryDto {
   @ApiPropertyOptional({ enum: TipoBase })
@@ -9,10 +9,10 @@ export class ListarUploadsQueryDto extends PaginacaoQueryDto {
   @IsEnum(TipoBase)
   tipoBase?: TipoBase;
 
-  @ApiPropertyOptional({ enum: ModoProcessamento })
+  @ApiPropertyOptional({ enum: ModoCarga })
   @IsOptional()
-  @IsEnum(ModoProcessamento)
-  modo?: ModoProcessamento;
+  @IsEnum(ModoCarga)
+  modo?: ModoCarga;
 
   @ApiPropertyOptional({ enum: StatusImportacao })
   @IsOptional()

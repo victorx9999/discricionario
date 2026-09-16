@@ -8,27 +8,31 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { ModoProcessamento, StatusImportacao, TipoBase } from '../../common/enums';
+import { Ciclo } from '../../ciclos/entities/ciclo.entity';
+import { ModoCarga, StatusImportacao, TipoBase } from '../../common/enums';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
 import { ErroImportacao } from './erro-importacao.entity';
 
-/** Cabeçalho de uma importação de base (upload). */
+/** Cabeçalho de uma carga de base (upload), sempre dentro de um ciclo. */
 @Entity('importacoes')
 @Index('idx_importacoes_criado_em', ['criadoEm'])
 export class Importacao {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @ManyToOne(() => Ciclo, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'ciclo_id' })
+  ciclo: Ciclo;
+
+  @Index('idx_importacoes_ciclo')
+  @Column({ name: 'ciclo_id', type: 'uuid' })
+  cicloId: string;
+
   @Column({ name: 'tipo_base', type: 'enum', enum: TipoBase, enumName: 'tipo_base_enum' })
   tipoBase: TipoBase;
 
-  @Column({
-    type: 'enum',
-    enum: ModoProcessamento,
-    enumName: 'modo_processamento_enum',
-    default: ModoProcessamento.INCREMENTAL,
-  })
-  modo: ModoProcessamento;
+  @Column({ type: 'enum', enum: ModoCarga, enumName: 'modo_carga_enum', default: ModoCarga.PARCIAL })
+  modo: ModoCarga;
 
   @Column({ name: 'nome_arquivo', length: 255 })
   nomeArquivo: string;
@@ -65,7 +69,7 @@ export class Importacao {
   @Column({ name: 'mensagem_erro', type: 'text', nullable: true })
   mensagemErro: string | null;
 
-  /** Efeitos colaterais do modo COMPLETO (grupos/comitês limpos, etc.). */
+  /** Colunas reconhecidas/ignoradas e efeitos colaterais da carga completa. */
   @Column({ type: 'jsonb', nullable: true })
   resumo: Record<string, unknown> | null;
 

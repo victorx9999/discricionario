@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, EntityManager, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 import { ResultadoPaginado } from '../common/dto';
-import { AcaoAuditoria, OrigemAuditoria } from '../common/enums';
+import { AcaoAuditoria, OperacaoAuditoria, OrigemAuditoria } from '../common/enums';
 import { ConsultarAuditoriaQueryDto } from './dto/consultar-auditoria-query.dto';
 import { RegistrarAuditoriaDto } from './dto/registrar-auditoria.dto';
 import { LogAuditoria } from './entities/log-auditoria.entity';
@@ -86,6 +86,8 @@ export class AuditoriaService {
     const where: Record<string, unknown> = {};
 
     if (query.acao) where.acao = query.acao;
+    if (query.cicloId) where.cicloId = query.cicloId;
+    if (query.operacao) where.operacao = query.operacao;
     if (query.entidade) where.entidade = query.entidade;
     if (query.entidadeId) where.entidadeId = query.entidadeId;
     if (query.usuarioId) where.usuarioId = query.usuarioId;
@@ -128,8 +130,10 @@ export class AuditoriaService {
   private montarEntidade(dto: RegistrarAuditoriaDto): Partial<LogAuditoria> {
     return {
       acao: dto.acao,
+      operacao: dto.operacao ?? OperacaoAuditoria.UPDATE,
       entidade: dto.entidade,
       entidadeId: dto.entidadeId ?? null,
+      cicloId: dto.cicloId ?? null,
       usuarioId: dto.usuario?.id ?? null,
       usuarioEmail: dto.usuario?.email ?? null,
       comiteId: dto.comiteId ?? null,
@@ -166,4 +170,3 @@ export class AuditoriaService {
   }
 }
 
-export { AcaoAuditoria };

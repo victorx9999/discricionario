@@ -178,7 +178,12 @@ export class CsvService {
 
     for (const definicao of definicoes) {
       const indice = indices.get(definicao.campo);
-      const bruto = indice === undefined ? '' : String(celulas[indice] ?? '').trim();
+
+      // Coluna ausente do arquivo: o campo nem entra no objeto, para que a
+      // carga parcial não sobrescreva com null o que já existe no banco.
+      if (indice === undefined) continue;
+
+      const bruto = String(celulas[indice] ?? '').trim();
 
       if (!bruto) {
         if (definicao.obrigatoria) {
@@ -209,7 +214,24 @@ export class CsvService {
       }
 
       if (definicao.tipo === 'booleano') {
-        dados[definicao.campo] = ['1', 'true', 'sim', 's', 'y'].includes(bruto.toLowerCase());
+        dados[definicao.campo] = ['1', 'true', 'verdadeiro', 'sim', 's', 'y', 'x'].includes(
+          bruto.toLowerCase(),
+        );
+        continue;
+      }
+
+      if (definicao.tipo === 'data') {
+        const data = interpretarData(bruto);
+        if (!data) {
+          errosLinha.push({
+            linha: numeroLinha,
+            coluna: definicao.rotulo,
+            valor: bruto.slice(0, 60),
+            mensagem: `"${definicao.rotulo}" deve ser uma data (dd/mm/aaaa ou aaaa-mm-dd). Valor recebido: "${bruto}"`,
+          });
+          continue;
+        }
+        dados[definicao.campo] = data;
         continue;
       }
 
@@ -239,4 +261,29 @@ export class CsvService {
 
     return { dados, errosLinha };
   }
+}
+
+/**
+ * Interpreta datas em `dd/mm/aaaa`, `aaaa-mm-dd` ou `dd-mm-aaaa`.
+ * Devolve `null` quando o conteúdo não é uma data válida.
+ */
+export function interpretarData(texto: string): Date | null {
+  const limpo = texto.trim();
+  if (!limpo) return null;
+
+  const isoCompleto = /^(\d{4})-(\d{2})-(\d{2})/.exec(limpo);
+  if (isoCompleto) {
+    const data = new Date(Number(isoCompleto[1]), Number(isoCompleto[2]) - 1, Number(isoCompleto[3]));
+    return Number.isNaN(data.getTime()) ? null : data;
+  }
+
+  const brasileiro = /^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/.exec(limpo);
+  if (brasileiro) {
+    const ano = Number(brasileiro[3]);
+    const anoCompleto = ano < 100 ? 2000 + ano : ano;
+    const data = new Date(anoCompleto, Number(brasileiro[2]) - 1, Number(brasileiro[1]));
+    return Number.isNaN(data.getTime()) ? null : data;
+  }
+
+  return null;
 }

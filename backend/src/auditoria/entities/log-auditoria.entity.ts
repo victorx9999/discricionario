@@ -7,16 +7,17 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { AcaoAuditoria, OrigemAuditoria } from '../../common/enums';
+import { AcaoAuditoria, OperacaoAuditoria, OrigemAuditoria } from '../../common/enums';
+import { Ciclo } from '../../ciclos/entities/ciclo.entity';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
 
 /**
- * Registro imutável de auditoria.
+ * Trilha de auditoria (AuditLog).
  *
- * A tabela é append-only: nenhum serviço do sistema faz UPDATE ou DELETE aqui.
- * O usuário é referenciado por FK (ON DELETE SET NULL) e também gravado de
- * forma desnormalizada (`usuario_email`) para que o log continue legível caso
- * o usuário seja removido.
+ * Append-only: nenhum serviço faz UPDATE ou DELETE aqui. O usuário é
+ * referenciado por FK (ON DELETE SET NULL) e também gravado de forma
+ * desnormalizada (`usuario_email`) para que o log continue legível caso o
+ * usuário seja removido. O `ciclo_id` mantém a trilha separada por ano.
  */
 @Entity('auditoria_logs')
 @Index('idx_auditoria_criado_em', ['criadoEm'])
@@ -29,12 +30,28 @@ export class LogAuditoria {
   @Column({ type: 'enum', enum: AcaoAuditoria, enumName: 'acao_auditoria_enum' })
   acao: AcaoAuditoria;
 
-  /** Nome lógico da entidade afetada (PARTICIPANTE, GRUPO, COMITE, ...). */
+  @Column({
+    type: 'enum',
+    enum: OperacaoAuditoria,
+    enumName: 'operacao_auditoria_enum',
+    default: OperacaoAuditoria.UPDATE,
+  })
+  operacao: OperacaoAuditoria;
+
+  /** Nome lógico da entidade afetada (PARTICIPANTE, COMITE, CICLO, ...). */
   @Column({ length: 60 })
   entidade: string;
 
   @Column({ name: 'entidade_id', length: 100, nullable: true })
   entidadeId: string | null;
+
+  @ManyToOne(() => Ciclo, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'ciclo_id' })
+  ciclo: Ciclo | null;
+
+  @Index('idx_auditoria_ciclo')
+  @Column({ name: 'ciclo_id', type: 'uuid', nullable: true })
+  cicloId: string | null;
 
   @ManyToOne(() => Usuario, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'usuario_id' })

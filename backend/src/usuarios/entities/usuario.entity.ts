@@ -2,14 +2,15 @@ import { Exclude } from 'class-transformer';
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   Index,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { ComiteResponsavel } from '../../comites/entities/comite-responsavel.entity';
 import { PerfilUsuario } from '../../common/enums';
-import { GrupoResponsavel } from '../../grupos/entities/grupo-responsavel.entity';
 
 @Entity('usuarios')
 export class Usuario {
@@ -42,12 +43,16 @@ export class Usuario {
   @Column({ name: 'ultimo_acesso_em', type: 'timestamptz', nullable: true })
   ultimoAcessoEm: Date | null;
 
-  @OneToMany(() => GrupoResponsavel, (responsavel) => responsavel.usuario)
-  gruposResponsaveis: GrupoResponsavel[];
+  /** Comitês em que o usuário é consultoria responsável, backup ou criador. */
+  @OneToMany(() => ComiteResponsavel, (responsavel) => responsavel.usuario)
+  comitesResponsaveis: ComiteResponsavel[];
 
   @CreateDateColumn({ name: 'criado_em', type: 'timestamptz' })
   criadoEm: Date;
 
   @UpdateDateColumn({ name: 'atualizado_em', type: 'timestamptz' })
   atualizadoEm: Date;
+
+  @DeleteDateColumn({ name: 'removido_em', type: 'timestamptz', nullable: true })
+  removidoEm: Date | null;
 }

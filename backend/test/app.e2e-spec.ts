@@ -4,62 +4,116 @@ import { getDataSourceToken } from '@nestjs/typeorm';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../src/app.module';
-import { HttpExcecaoFilter } from '../src/common/filters';
 import { PerfilUsuario } from '../src/common/enums';
+import { HttpExcecaoFilter } from '../src/common/filters';
 import { Usuario } from '../src/usuarios/entities/usuario.entity';
 import { UsuariosService } from '../src/usuarios/usuarios.service';
 
+const API = '/api/v1';
 const SENHA = 'Senha@123';
 const EMAIL_ADMIN = 'e2e-admin@discricionario.local';
+const EMAIL_CONSULTORIA = 'e2e-consultoria@discricionario.local';
 
-/** Base principal mínima usada nos cenários. */
-const CSV_BASE_PRINCIPAL = [
-  'FUNCIONAL;NOME;CARGO;NIVEL_CARGO;MODELO_AVALIACAO;AREA;FPI;FBPA;VALORBASE;VLRTEORICO',
-  'E2E001;Ana Teste Almeida;Analista;Júnior;Corporativo;Tecnologia;1,00;1,00;10000;120000',
-  'E2E002;Bruno Teste Barbosa;Analista;Pleno;Corporativo;Tecnologia;1,10;1,00;12000;150000',
-  'E2E003;Carla Teste Cardoso;Especialista;Sênior;Comercial;Tecnologia;1,20;1,00;15000;200000',
-  'E2E004;VALOR INVALIDO;Analista;Pleno;Corporativo;Tecnologia;XPTO;1,00;9000;100000',
-].join('\n');
+/**
+ * Base principal mínima. O CALC4 é a BASE do PR (VL_PR_I = CALC4 × FPI), então
+ * aqui ele é o próprio VALORBASE e o PR acompanha o FPI de forma previsível.
+ */
+const CABECALHO =
+  'EMPLID;NAME;XLATLONGNAME;MODELO_AVALIACAO;AREA;FPI;CALC4;VALORBASE;VLBASEMES;VLR_TEORICO;GRUPO_RANKING;TOTAL_CASH;TOTAL_CASH_ANO_ANTERIOR2;PR_ANO_ANTERIOR2';
 
-const CSV_BASE_ACRESCIMO = [
-  'FUNCIONAL;AREA_ORIGEM;ACRESCIMO_PR_I;ACRESCIMO_PR_F;OBSERVACAO',
-  'E2E002;Comercial;1.000,00;1.200,00;Passou por outra área',
+const linha = (
+  emplid: string,
+  nome: string,
+  nivel: string,
+  fpi: number,
+  valorBase: number,
+  grupo: string,
+) =>
+  [
+    emplid,
+    nome,
+    nivel,
+    'Institucional',
+    'Tecnologia',
+    String(fpi).replace('.', ','),
+    String(valorBase),
+    String(valorBase),
+    String(valorBase / 12),
+    String(valorBase * fpi),
+    grupo,
+    String(valorBase * 2),
+    String(valorBase * 1.9),
+    String(valorBase * fpi * 0.95),
+  ].join(';');
+
+const GRUPO = '100702 - WMS PRIVATE';
+
+const csvCiclo = (prefixo: string) =>
+  [
+    CABECALHO,
+    linha(`${prefixo}01`, 'Ana Teste Almeida', 'Coordenador', 1, 100_000, GRUPO),
+    linha(`${prefixo}02`, 'Bruno Teste Barbosa', 'Coordenador', 1, 100_000, GRUPO),
+    linha(`${prefixo}03`, 'Carla Teste Cardoso', 'Gerente', 1, 200_000, GRUPO),
+    `${prefixo}04;Registro Invalido;Coordenador;Institucional;Tecnologia;XPTO;1;1;1;1;${GRUPO};1;1;1`,
+  ].join('\n');
+
+const CSV_ACRESCIMO = [
+  'EMPLID;FLAG_CALCULAR_POOL;TIPO_SIMULADOR;IDPOOL;VLR_TEORICO;VL_PR_I;CALC4;FPI',
+  'A2601;Sim;Institucional;Dentro de Pool;20000;20000;20000;1',
+  'A2602;Não;Institucional;Dentro de Pool;50000;50000;50000;1',
 ].join('\n');
 
 describe('API Discricionário de Remuneração (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
   let token: string;
+  let tokenConsultoria: string;
 
   const http = () => request(app.getHttpServer());
-  const autenticado = (metodo: 'get' | 'post' | 'put' | 'delete', url: string) =>
-    http()[metodo](url).set('Authorization', `Bearer ${token}`);
+  const como = (autorizacao: string, metodo: 'get' | 'post' | 'put' | 'delete' | 'patch', url: string) =>
+    http()[metodo](url).set('Authorization', `Bearer ${autorizacao}`);
+  const admin = (metodo: 'get' | 'post' | 'put' | 'delete' | 'patch', url: string) =>
+    como(token, metodo, url);
 
   beforeAll(async () => {
     const modulo: TestingModule = await Test.createTestingModule({ imports: [AppModule] }).compile();
 
     app = modulo.createNestApplication();
-    app.setGlobalPrefix('api');
+    app.setGlobalPrefix('api/v1');
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
     app.useGlobalFilters(new HttpExcecaoFilter());
     await app.init();
 
     dataSource = app.get<DataSource>(getDataSourceToken());
-
-    // Usuário administrador do cenário.
     const usuarios = dataSource.getRepository(Usuario);
-    const existente = await usuarios.findOne({ where: { email: EMAIL_ADMIN } });
-    if (!existente) {
-      await usuarios.save(
-        usuarios.create({
-          nome: 'Administrador E2E',
-          email: EMAIL_ADMIN,
-          senhaHash: await UsuariosService.gerarHash(SENHA),
-          perfil: PerfilUsuario.ADMIN,
-          ativo: true,
-        }),
-      );
+
+    for (const [email, nome, perfil] of [
+      [EMAIL_ADMIN, 'Administrador E2E', PerfilUsuario.ADMIN],
+      [EMAIL_CONSULTORIA, 'Consultoria E2E', PerfilUsuario.CONSULTORIA],
+    ] as const) {
+      if (!(await usuarios.findOne({ where: { email } }))) {
+        await usuarios.save(
+          usuarios.create({
+            nome,
+            email,
+            perfil,
+            ativo: true,
+            senhaHash: await UsuariosService.gerarHash(SENHA),
+          }),
+        );
+      }
     }
+
+    token = (
+      await http().post(`${API}/auth/login`).send({ email: EMAIL_ADMIN, senha: SENHA }).expect(200)
+    ).body.accessToken;
+
+    tokenConsultoria = (
+      await http()
+        .post(`${API}/auth/login`)
+        .send({ email: EMAIL_CONSULTORIA, senha: SENHA })
+        .expect(200)
+    ).body.accessToken;
   });
 
   afterAll(async () => {
@@ -67,329 +121,510 @@ describe('API Discricionário de Remuneração (e2e)', () => {
   });
 
   // ------------------------------------------------------------------
-  // Autenticação
+  // Ciclos — o coração do histórico
   // ------------------------------------------------------------------
 
-  describe('Autenticação', () => {
-    it('bloqueia rota protegida sem token', async () => {
-      await http().get('/api/participantes').expect(401);
+  describe('Ciclos', () => {
+    it('exige autenticação', async () => {
+      await http().get(`${API}/ciclos`).expect(401);
     });
 
-    it('rejeita credenciais inválidas com o contrato padrão de erro', async () => {
-      const resposta = await http()
-        .post('/api/autenticacao/login')
-        .send({ email: EMAIL_ADMIN, senha: 'senha-errada' })
-        .expect(401);
+    it('cria e ativa os ciclos 2025 e 2026', async () => {
+      for (const ano of [2025, 2026]) {
+        const existente = await admin('get', `${API}/ciclos?limit=100`).expect(200);
+        const ja = existente.body.data.find((ciclo: { ano: number }) => ciclo.ano === ano);
+        if (!ja) {
+          await admin('post', `${API}/ciclos`).send({ ano, ativar: true }).expect(201);
+        }
+      }
 
-      expect(resposta.body).toMatchObject({ statusCode: 401, error: 'Unauthorized' });
+      const lista = await admin('get', `${API}/ciclos?limit=100`).expect(200);
+      const anos = lista.body.data.map((ciclo: { ano: number }) => ciclo.ano);
+      expect(anos).toEqual(expect.arrayContaining([2025, 2026]));
     });
 
-    it('rejeita payload inválido com mensagens de validação', async () => {
-      const resposta = await http()
-        .post('/api/autenticacao/login')
-        .send({ email: 'nao-e-email', senha: '1' })
-        .expect(400);
-
-      expect(resposta.body.statusCode).toBe(400);
-      expect(Array.isArray(resposta.body.message)).toBe(true);
+    it('mantém apenas um ciclo ativo', async () => {
+      const lista = await admin('get', `${API}/ciclos?limit=100`).expect(200);
+      const ativos = lista.body.data.filter((ciclo: { ativo: boolean }) => ciclo.ativo);
+      expect(ativos).toHaveLength(1);
     });
 
-    it('autentica e devolve o token', async () => {
-      const resposta = await http()
-        .post('/api/autenticacao/login')
-        .send({ email: EMAIL_ADMIN, senha: SENHA })
-        .expect(200);
+    it('expõe as premissas vigentes do ciclo ativo', async () => {
+      const resposta = await admin('get', `${API}/ciclos/ativo`).expect(200);
 
-      expect(resposta.body.usuario.perfil).toBe(PerfilUsuario.ADMIN);
-      expect(resposta.body.accessToken).toBeDefined();
-      token = resposta.body.accessToken;
+      expect(resposta.body).toMatchObject({
+        percentualPool: 0.01,
+        limiteFd: 0.15,
+        divisorHcMax: 3,
+        fatorPep: 0.725,
+        fatorDiferimento: 0.7,
+      });
     });
   });
 
   // ------------------------------------------------------------------
-  // Upload das bases
+  // Cargas por ciclo
   // ------------------------------------------------------------------
 
-  describe('POST /importacoes', () => {
-    it('recusa arquivo sem as colunas obrigatórias', async () => {
-      const resposta = await autenticado('post', '/api/importacoes')
+  describe('Cargas das bases', () => {
+    it('pré-visualiza a carga sem gravar nada', async () => {
+      const resposta = await admin('post', `${API}/uploads/previa`)
         .field('tipoBase', 'PRINCIPAL')
-        .field('modo', 'COMPLETO')
-        .attach('file', Buffer.from('NOME;CARGO\nAna;Analista'), 'invalido.csv')
+        .field('modo', 'COMPLETA')
+        .field('ciclo', '2025')
+        .attach('file', Buffer.from(csvCiclo('A25')), 'base.csv')
+        .expect(200);
+
+      expect(resposta.body.ciclo).toBe(2025);
+      expect(resposta.body.registrosValidos).toBe(3);
+      expect(resposta.body.registrosComErro).toBe(1);
+      expect(resposta.body.colunasReconhecidas).toEqual(expect.arrayContaining(['EMPLID', 'CALC4']));
+    });
+
+    it('recusa arquivo sem as colunas obrigatórias', async () => {
+      const resposta = await admin('post', `${API}/uploads`)
+        .field('tipoBase', 'PRINCIPAL')
+        .field('ciclo', '2025')
+        .attach('file', Buffer.from('NAME;AREA\nAna;TI'), 'invalido.csv')
         .expect(400);
 
       expect(resposta.body.codigo).toBe('UPLOAD_INVALIDO');
-      expect(resposta.body.message).toMatch(/FUNCIONAL/);
+      expect(resposta.body.message).toMatch(/EMPLID/);
     });
 
-    it('processa a base principal em modo COMPLETO e reporta os registros inválidos', async () => {
-      const resposta = await autenticado('post', '/api/importacoes')
+    it('carrega o ciclo 2025 criando o comitê pelo GRUPO_RANKING', async () => {
+      const resposta = await admin('post', `${API}/uploads`)
         .field('tipoBase', 'PRINCIPAL')
-        .field('modo', 'COMPLETO')
-        .attach('file', Buffer.from(CSV_BASE_PRINCIPAL), 'base-principal.csv')
+        .field('modo', 'COMPLETA')
+        .field('ciclo', '2025')
+        .field('confirmarReinicioDoCiclo', 'true')
+        .attach('file', Buffer.from(csvCiclo('A25')), 'base-2025.csv')
         .expect(201);
 
-      expect(resposta.body.totalRegistros).toBe(4);
-      expect(resposta.body.registrosProcessados).toBe(3);
+      expect(resposta.body.ciclo).toBe(2025);
+      expect(resposta.body.registrosInseridos).toBe(3);
       expect(resposta.body.registrosComErro).toBe(1);
-      expect(resposta.body.erros[0]).toMatchObject({ coluna: 'FPI' });
-      expect(resposta.body.status).toBe('CONCLUIDO_COM_ERROS');
+      expect(resposta.body.resumo.comitesCriados).toBeGreaterThanOrEqual(1);
+      expect(resposta.body.resumo.participantesVinculados).toBe(3);
     });
 
-    it('processa a base de acréscimo', async () => {
-      const resposta = await autenticado('post', '/api/importacoes')
-        .field('tipoBase', 'ACRESCIMO')
-        .field('modo', 'COMPLETO')
-        .attach('file', Buffer.from(CSV_BASE_ACRESCIMO), 'base-acrescimo.csv')
+    it('carrega o ciclo 2026 sem tocar em 2025', async () => {
+      await admin('post', `${API}/uploads`)
+        .field('tipoBase', 'PRINCIPAL')
+        .field('modo', 'COMPLETA')
+        .field('ciclo', '2026')
+        .field('confirmarReinicioDoCiclo', 'true')
+        .attach('file', Buffer.from(csvCiclo('A26')), 'base-2026.csv')
         .expect(201);
 
-      expect(resposta.body.registrosInseridos).toBe(1);
-      expect(resposta.body.registrosComErro).toBe(0);
+      const de2025 = await admin('get', `${API}/participantes?ciclo=2025`).expect(200);
+      const de2026 = await admin('get', `${API}/participantes?ciclo=2026`).expect(200);
+
+      expect(de2025.body.total).toBe(3);
+      expect(de2026.body.total).toBe(3);
+      expect(de2025.body.data[0].emplid).toMatch(/^A25/);
+      expect(de2026.body.data[0].emplid).toMatch(/^A26/);
     });
 
-    it('registra a importação no histórico e na auditoria', async () => {
-      const uploads = await autenticado('get', '/api/importacoes?limit=10').expect(200);
+    it('carrega a base de acréscimo e marca a elegibilidade', async () => {
+      const resposta = await admin('post', `${API}/uploads`)
+        .field('tipoBase', 'ACRESCIMO')
+        .field('ciclo', '2026')
+        .attach('file', Buffer.from(CSV_ACRESCIMO), 'acrescimo.csv')
+        .expect(201);
+
+      expect(resposta.body.registrosInseridos).toBe(2);
+      expect(resposta.body.resumo.elegiveis).toBe(1);
+      expect(resposta.body.resumo.naoElegiveis).toBe(1);
+    });
+
+    it('o acréscimo elegível entra no PR sem discricionário', async () => {
+      const lista = await admin('get', `${API}/participantes?ciclo=2026&emplid=A2601`).expect(200);
+      const participante = lista.body.data[0];
+
+      // CALC4 100.000 + acréscimo 20.000
+      expect(participante.vlPrI).toBe(100_000);
+      expect(participante.prSemDiscricionario).toBe(120_000);
+    });
+
+    it('o acréscimo não elegível fica de fora do PR', async () => {
+      const lista = await admin('get', `${API}/participantes?ciclo=2026&emplid=A2602`).expect(200);
+      expect(lista.body.data[0].prSemDiscricionario).toBe(100_000);
+    });
+
+    it('registra as cargas no histórico do ciclo e na auditoria', async () => {
+      const uploads = await admin('get', `${API}/uploads?ciclo=2026`).expect(200);
       expect(uploads.body.total).toBeGreaterThanOrEqual(2);
 
-      const auditoria = await autenticado('get', '/api/logs-auditoria?acao=UPLOAD_CONCLUIDO').expect(200);
-      expect(auditoria.body.total).toBeGreaterThanOrEqual(2);
+      const auditoria = await admin('get', `${API}/audit?acao=UPLOAD_CONCLUIDO`).expect(200);
+      expect(auditoria.body.total).toBeGreaterThanOrEqual(3);
     });
   });
 
   // ------------------------------------------------------------------
-  // Participantes
+  // Participantes e filtros dinâmicos
   // ------------------------------------------------------------------
 
-  describe('GET /participantes', () => {
+  describe('Participantes', () => {
     it('devolve o envelope paginado', async () => {
-      const resposta = await autenticado('get', '/api/participantes?page=1&limit=2').expect(200);
+      const resposta = await admin('get', `${API}/participantes?ciclo=2026&page=1&limit=2`).expect(200);
 
       expect(resposta.body).toMatchObject({ page: 1, limit: 2, total: 3, totalPages: 2 });
       expect(resposta.body.data).toHaveLength(2);
     });
 
-    it('busca por nome e por matrícula', async () => {
-      const porNome = await autenticado('get', '/api/participantes?search=Bruno').expect(200);
+    it('busca por nome e por funcional', async () => {
+      const porNome = await admin('get', `${API}/participantes?ciclo=2026&search=Bruno`).expect(200);
       expect(porNome.body.total).toBe(1);
 
-      const porFuncional = await autenticado('get', '/api/participantes?search=E2E003').expect(200);
+      const porFuncional = await admin('get', `${API}/participantes?ciclo=2026&search=A2603`).expect(200);
       expect(porFuncional.body.total).toBe(1);
     });
 
-    it('filtra por nível de cargo', async () => {
-      const resposta = await autenticado('get', '/api/participantes?nivelCargo=Pleno').expect(200);
+    it('aceita filtro dinâmico campo:operador:valor', async () => {
+      const resposta = await admin(
+        'get',
+        `${API}/participantes?ciclo=2026&filter=nivelCargo:eq:Gerente`,
+      ).expect(200);
+
+      expect(resposta.body.total).toBe(1);
+      expect(resposta.body.data[0].xlatlongname).toBe('Gerente');
+    });
+
+    it('recusa filtro em campo não permitido', async () => {
+      await admin('get', `${API}/participantes?ciclo=2026&filter=senhaHash:eq:x`).expect(400);
+    });
+
+    it('recusa operador inválido', async () => {
+      await admin('get', `${API}/participantes?ciclo=2026&filter=fd:explode:1`).expect(400);
+    });
+
+    it('expõe o catálogo de colunas da tabela customizável', async () => {
+      const resposta = await admin('get', `${API}/participantes/colunas`).expect(200);
+
+      expect(resposta.body.total).toBeGreaterThan(30);
+      expect(resposta.body.colunas.map((c: { chave: string }) => c.chave)).toEqual(
+        expect.arrayContaining(['nome', 'fd', 'prPosDiscricionario', 'tcMaisSociosAtual']),
+      );
+    });
+  });
+
+  // ------------------------------------------------------------------
+  // Comitê: discricionário, pool, resumo, colunas e ATA
+  // ------------------------------------------------------------------
+
+  describe('Comitê', () => {
+    let comiteId: string;
+    let participanteId: string;
+
+    it('lista os comitês do ciclo', async () => {
+      const resposta = await admin('get', `${API}/comites?ciclo=2026`).expect(200);
+
+      expect(resposta.body.total).toBeGreaterThanOrEqual(1);
+      comiteId = resposta.body.data[0].id;
+      expect(resposta.body.data[0].grupoRanking).toBe(GRUPO);
+    });
+
+    it('a Consultoria não enxerga comitês em que não é responsável', async () => {
+      const resposta = await como(tokenConsultoria, 'get', `${API}/comites?ciclo=2026`).expect(200);
+      expect(resposta.body.total).toBe(0);
+    });
+
+    it('vincula a Consultoria e ela passa a enxergar o comitê', async () => {
+      const usuarios = await admin('get', `${API}/usuarios?search=e2e-consultoria`).expect(200);
+      const consultoriaId = usuarios.body.data[0].id;
+
+      await admin('put', `${API}/comites/${comiteId}`)
+        .send({ consultoriaIds: [consultoriaId] })
+        .expect(200);
+
+      const resposta = await como(tokenConsultoria, 'get', `${API}/comites?ciclo=2026`).expect(200);
       expect(resposta.body.total).toBe(1);
     });
 
-    it('calcula VL_PR_I e VL_PR_F a partir das fórmulas oficiais', async () => {
-      const lista = await autenticado('get', '/api/participantes?search=E2E001').expect(200);
-      const participante = lista.body.data[0];
+    it('o pool do comitê é 1% do Σ VLR_TEORICO, com acréscimos elegíveis', async () => {
+      const resposta = await admin('get', `${API}/comites/${comiteId}/pool`).expect(200);
 
-      // 10.000 x 1,00 x 1,00 = 10.000
-      expect(participante.valorPrI).toBe(10000);
-      expect(participante.valorPrF).toBe(10000);
+      // 100.000 + 100.000 + 200.000 + acréscimo elegível 20.000 = 420.000
+      expect(resposta.body.vlrTeoricoTotal).toBe(420_000);
+      expect(resposta.body.poolDisponivel).toBe(4_200);
+      expect(resposta.body.poolConsumido).toBe(0);
     });
 
-    it('soma os acréscimos apenas na visão anual', async () => {
-      const lista = await autenticado('get', '/api/participantes?search=E2E002').expect(200);
-      const detalhe = await autenticado('get', `/api/participantes/${lista.body.data[0].id}`).expect(200);
+    it('recusa discricionário acima do limite sem confirmação', async () => {
+      const lista = await admin('get', `${API}/comites/${comiteId}/participantes`).expect(200);
+      participanteId = lista.body.data.find((p: { emplid: string }) => p.emplid === 'A2601').id;
 
-      // Base: 12.000 x 1,00 x 1,10 = 13.200 | acréscimo PR_I = 1.000
-      expect(detalhe.body.valorPrI).toBe(13200);
-      expect(detalhe.body.valorPrIAnual).toBe(14200);
-      expect(detalhe.body.valorPrFAnual).toBe(14400);
-      expect(detalhe.body.acrescimos).toHaveLength(1);
-    });
-
-    it('rejeita campo de ordenação desconhecido', async () => {
-      await autenticado('get', '/api/participantes?sortBy=coluna_inexistente').expect(400);
-    });
-  });
-
-  // ------------------------------------------------------------------
-  // Grupos, comitês e discricionário
-  // ------------------------------------------------------------------
-
-  describe('Fluxo grupo -> comitê -> discricionário', () => {
-    let grupoId: string;
-    let comiteId: string;
-    let analiseId: string;
-
-    it('cria o grupo com os participantes selecionados', async () => {
-      const participantes = await autenticado('get', '/api/participantes?limit=100').expect(200);
-      const ids = participantes.body.data.map((p: { id: string }) => p.id);
-
-      const resposta = await autenticado('post', '/api/grupos')
-        .send({ nome: 'Grupo E2E', codigo: 'GRP-E2E', participanteIds: ids })
-        .expect(201);
-
-      grupoId = resposta.body.id;
-      expect(resposta.body.totalParticipantes).toBe(3);
-    });
-
-    it('recusa código de grupo duplicado', async () => {
-      await autenticado('post', '/api/grupos')
-        .send({ nome: 'Outro', codigo: 'GRP-E2E' })
-        .expect(409);
-    });
-
-    it('calcula o pool do grupo como 1% do VLRTEORICO total', async () => {
-      const resposta = await autenticado('get', `/api/grupos/${grupoId}/pool`).expect(200);
-
-      // 120.000 + 150.000 + 200.000 = 470.000 -> pool = 4.700
-      expect(resposta.body.vlrTeoricoTotal).toBe(470000);
-      expect(resposta.body.poolTotal).toBe(4700);
-    });
-
-    it('cria o comitê e monta a navegação', async () => {
-      const resposta = await autenticado('post', '/api/comites')
-        .send({ nome: 'Comitê E2E', codigo: 'COM-E2E', grupoId })
-        .expect(201);
-
-      comiteId = resposta.body.id;
-      expect(resposta.body.totalParticipantes).toBe(3);
-    });
-
-    it('lista os participantes do comitê em ordem de navegação', async () => {
-      const resposta = await autenticado('get', `/api/comites/${comiteId}/participantes`).expect(200);
-
-      expect(resposta.body.total).toBe(3);
-      expect(resposta.body.data.map((linha: { ordem: number }) => linha.ordem)).toEqual([1, 2, 3]);
-      analiseId = resposta.body.data[0].analiseId;
-    });
-
-    it('navega para o primeiro, próximo e último participante', async () => {
-      const primeiro = await autenticado('get', `/api/comites/${comiteId}/navegacao?direcao=primeiro`).expect(200);
-      expect(primeiro.body.ordem).toBe(1);
-
-      const proximo = await autenticado(
-        'get',
-        `/api/comites/${comiteId}/navegacao?direcao=proximo&analiseId=${primeiro.body.analiseId}`,
-      ).expect(200);
-      expect(proximo.body.ordem).toBe(2);
-
-      const ultimo = await autenticado('get', `/api/comites/${comiteId}/navegacao?direcao=ultimo`).expect(200);
-      expect(ultimo.body.ordem).toBe(3);
-      expect(ultimo.body.proximaAnaliseId).toBeNull();
-    });
-
-    it('rejeita discricionário acima do limite de +15pp', async () => {
-      const resposta = await autenticado('post', '/api/discricionarios')
-        .send({ analiseId, valorFd: 0.2 })
+      const resposta = await admin('patch', `${API}/participantes/${participanteId}/discricionario`)
+        .send({ fd: 0.2, codMotivador: 1, justificativa: 'Teste' })
         .expect(400);
 
-      expect(JSON.stringify(resposta.body.message)).toMatch(/discricion/i);
+      expect(resposta.body.codigo).toBe('DISCRICIONARIO_INVALIDO');
+      expect(resposta.body.detalhes.exigeConfirmacao).toBe(true);
     });
 
-    it('lança o discricionário e devolve pool e resumo atualizados', async () => {
-      const resposta = await autenticado('post', '/api/discricionarios')
-        .send({
-          analiseId,
-          valorFd: 0.1,
-          avaliacaoComportamentalCodigo: 'PERFORMANCE',
-          justificativa: 'Entregas acima do esperado',
-          avancarParaProximo: true,
-        })
-        .expect(201);
+    it('recusa discricionário sem motivador', async () => {
+      const resposta = await admin('patch', `${API}/participantes/${participanteId}/discricionario`)
+        .send({ fd: 0.02 })
+        .expect(422);
 
-      // Participante E2E001: 10.000 x 1,00 x (1,00 + 0,10) = 11.000 -> impacto 1.000
-      expect(resposta.body.discricionario.fpiFinalCalculado).toBe(1.1);
-      expect(resposta.body.discricionario.valorPrFCalculado).toBe(11000);
-      expect(resposta.body.discricionario.impactoFinanceiro).toBe(1000);
-      expect(resposta.body.pool.poolUtilizado).toBe(1000);
-      expect(resposta.body.pool.poolDisponivel).toBe(3700);
-      expect(resposta.body.resumoPorNivelCargo.length).toBeGreaterThan(0);
-      expect(resposta.body.proximaAnalise.ordem).toBe(2);
+      expect(resposta.body.codigo).toBe('MOTIVADOR_OBRIGATORIO');
     });
 
-    it('bloqueia lançamento que ultrapassa o pool disponível', async () => {
-      const participantes = await autenticado('get', `/api/comites/${comiteId}/participantes`).expect(200);
-      const outra = participantes.body.data.find((linha: { ordem: number }) => linha.ordem === 3);
+    it('recusa discricionário sem justificativa', async () => {
+      const resposta = await admin('patch', `${API}/participantes/${participanteId}/discricionario`)
+        .send({ fd: 0.02, codMotivador: 1 })
+        .expect(422);
 
-      // Carla: 15.000 x 1,00 x 0,15 = 2.250 de impacto — cabe.
-      // Duas tentativas seguidas de 15pp estourariam o pool restante de 3.700.
-      await autenticado('post', '/api/discricionarios')
-        .send({ analiseId: outra.analiseId, valorFd: 0.15 })
-        .expect(201);
+      expect(resposta.body.codigo).toBe('JUSTIFICATIVA_OBRIGATORIA');
+    });
 
-      const segunda = participantes.body.data.find((linha: { ordem: number }) => linha.ordem === 2);
-      const resposta = await autenticado('post', '/api/discricionarios')
-        .send({ analiseId: segunda.analiseId, valorFd: 0.15 })
+    it('respeita o limite próprio do motivador SQV (±5pp)', async () => {
+      const resposta = await admin('patch', `${API}/participantes/${participanteId}/discricionario`)
+        .send({ fd: 0.09, codMotivador: 3, justificativa: 'SQV acima do limite' })
+        .expect(400);
+
+      expect(resposta.body.detalhes.limiteMaximo).toBe(0.05);
+    });
+
+    it('bloqueia lançamento que estoura o pool', async () => {
+      // Pool 4.200; FD de 15pp sobre CALC4 100.000 consumiria 15.000.
+      const resposta = await admin('patch', `${API}/participantes/${participanteId}/discricionario`)
+        .send({ fd: 0.15, codMotivador: 1, justificativa: 'Estouro proposital' })
         .expect(422);
 
       expect(resposta.body.codigo).toBe('POOL_EXCEDIDO');
+      expect(resposta.body.detalhes.poolDisponivel).toBe(4_200);
     });
 
-    it('consolida o resumo por nível de cargo', async () => {
-      const resposta = await autenticado('get', `/api/comites/${comiteId}/resumo`).expect(200);
+    it('lança o discricionário e recalcula PR, nota e pool', async () => {
+      const resposta = await admin('patch', `${API}/participantes/${participanteId}/discricionario`)
+        .send({ fd: 0.02, codMotivador: 1, justificativa: 'Entregas acima do esperado' })
+        .expect(200);
+
+      // CALC4 100.000 com FPI 1,00 -> FPI_FINAL 1,02 -> PR 102.000 (+ acréscimo 20.400)
+      expect(resposta.body.fpiFinal).toBe(1.02);
+      expect(resposta.body.vlPrF).toBe(102_000);
+      expect(resposta.body.prPosDiscricionario).toBe(122_400);
+      expect(resposta.body.diferencaDiscricionario).toBe(2_400);
+      expect(resposta.body.fdPp).toBe('+2pp');
+
+      const pool = await admin('get', `${API}/comites/${comiteId}/pool`).expect(200);
+      expect(pool.body.poolConsumido).toBe(2_400);
+      expect(pool.body.saldo).toBe(1_800);
+    });
+
+    it('o resumo por nível traz HC Máx., Checagem e performance ponderada', async () => {
+      const resposta = await admin('get', `${API}/comites/${comiteId}/resumo`).expect(200);
 
       expect(resposta.body.totalParticipantes).toBe(3);
-      expect(resposta.body.participantesAnalisados).toBe(2);
-      expect(resposta.body.participantesPendentes).toBe(1);
-      expect(resposta.body.pool.poolTotal).toBe(4700);
+      expect(resposta.body.analisados).toBe(1);
 
-      const niveis = resposta.body.porNivelCargo.map((linha: { chave: string }) => linha.chave);
-      expect(niveis).toEqual(expect.arrayContaining(['Júnior', 'Pleno', 'Sênior']));
+      const coordenador = resposta.body.porNivelCargo.find(
+        (linhaResumo: { nivel: string }) => linhaResumo.nivel === 'Coordenador',
+      );
+      expect(coordenador.institucional.hcTotal).toBe(2);
+      expect(coordenador.institucional.hcMaximo).toBe(1);
+      expect(coordenador.institucional.aumento).toBe(1);
+      expect(coordenador.institucional.checagem).toBe('OK');
+      expect(resposta.body.performancePonderada.depois).toBeGreaterThan(
+        resposta.body.performancePonderada.antes,
+      );
     });
 
-    it('registra a auditoria do lançamento com valor anterior e novo', async () => {
-      const resposta = await autenticado(
+    it('zerar o discricionário remove motivador e justificativa', async () => {
+      const resposta = await admin('delete', `${API}/participantes/${participanteId}/discricionario`)
+        .expect(200);
+
+      expect(resposta.body.fd).toBe(0);
+      expect(resposta.body.codMotivador).toBeNull();
+      expect(resposta.body.observacaoPoscomite).toBeNull();
+
+      // Relança para os testes seguintes de conclusão.
+      await admin('patch', `${API}/participantes/${participanteId}/discricionario`)
+        .send({ fd: 0.02, codMotivador: 1, justificativa: 'Entregas acima do esperado' })
+        .expect(200);
+    });
+
+    it('audita o lançamento com valor anterior e novo', async () => {
+      const resposta = await admin(
         'get',
-        `/api/logs-auditoria?comiteId=${comiteId}&acao=DISCRICIONARIO_CRIADO`,
+        `${API}/audit?comiteId=${comiteId}&acao=DISCRICIONARIO_LANCADO`,
       ).expect(200);
 
-      expect(resposta.body.total).toBeGreaterThanOrEqual(2);
-      expect(resposta.body.data[0]).toMatchObject({ campoAlterado: 'valorFd', entidade: 'DISCRICIONARIO' });
+      expect(resposta.body.total).toBeGreaterThanOrEqual(1);
+      expect(resposta.body.data[0]).toMatchObject({ campoAlterado: 'fd', entidade: 'PARTICIPANTE' });
     });
 
-    it('impede finalizar o comitê com análises pendentes', async () => {
-      const resposta = await autenticado('post', `/api/comites/${comiteId}/finalizar`).expect(422);
+    it('salva o layout de colunas escolhido pelo Atendimento', async () => {
+      const resposta = await admin('put', `${API}/comites/${comiteId}/colunas`)
+        .send({
+          colunas: [
+            { chave: 'nome', visivel: true, ordem: 0, fixa: true, largura: 240 },
+            { chave: 'fd', visivel: true, ordem: 1, rotulo: 'Discricionário (pp)' },
+            { chave: 'prPosDiscricionario', visivel: true, ordem: 2 },
+            { chave: 'totalCash', visivel: false, ordem: 3 },
+          ],
+        })
+        .expect(200);
+
+      expect(resposta.body.personalizado).toBe(true);
+
+      const visiveis = resposta.body.colunas.filter((c: { visivel: boolean }) => c.visivel);
+      expect(visiveis.map((c: { chave: string }) => c.chave)).toEqual([
+        'nome',
+        'fd',
+        'prPosDiscricionario',
+      ]);
+      expect(visiveis[1].rotulo).toBe('Discricionário (pp)');
+    });
+
+    it('a Consultoria abre o comitê já com o layout montado', async () => {
+      const resposta = await como(tokenConsultoria, 'get', `${API}/comites/${comiteId}/colunas`).expect(
+        200,
+      );
+
+      expect(resposta.body.personalizado).toBe(true);
+      expect(resposta.body.colunas.find((c: { chave: string }) => c.chave === 'fd').rotulo).toBe(
+        'Discricionário (pp)',
+      );
+    });
+
+    it('recusa coluna fora do catálogo', async () => {
+      await admin('put', `${API}/comites/${comiteId}/colunas`)
+        .send({ colunas: [{ chave: 'coluna_inexistente' }] })
+        .expect(400);
+    });
+
+    it('impede concluir sem ATA completa', async () => {
+      const resposta = await admin('patch', `${API}/comites/${comiteId}/concluir`).send({}).expect(422);
+
       expect(resposta.body.codigo).toBe('COMITE_COM_PENDENCIAS');
+      expect(resposta.body.detalhes.bloqueiam.join(' ')).toMatch(/ATA/);
     });
 
-    it('impede excluir grupo com comitê vinculado', async () => {
-      const resposta = await autenticado('delete', `/api/grupos/${grupoId}`).expect(422);
-      expect(resposta.body.codigo).toBe('GRUPO_COM_COMITES');
+    it('cadastra a ATA e conclui o comitê', async () => {
+      await admin('put', `${API}/comites/${comiteId}/ata`)
+        .send({
+          data: '2026-03-18',
+          horaInicio: '14:00',
+          horaFim: '15:30',
+          observacoes: 'Comitê realizado por videoconferência.',
+          participantes: [{ nome: 'Maria Silva', papel: 'Consultoria responsável' }],
+        })
+        .expect(200);
+
+      const pendencias = await admin('get', `${API}/comites/${comiteId}/pendencias`).expect(200);
+      expect(pendencias.body.podeConcluir).toBe(true);
+
+      const concluido = await admin('patch', `${API}/comites/${comiteId}/concluir`).send({}).expect(200);
+      expect(concluido.body.status).toBe('CONCLUIDO');
+    });
+
+    it('comitê concluído bloqueia alteração do discricionário', async () => {
+      const resposta = await admin('patch', `${API}/participantes/${participanteId}/discricionario`)
+        .send({ fd: 0.03, codMotivador: 1, justificativa: 'Nova tentativa' })
+        .expect(422);
+
+      expect(resposta.body.codigo).toBe('COMITE_CONCLUIDO');
+    });
+
+    it('reabre o comitê e volta a aceitar lançamento', async () => {
+      await admin('patch', `${API}/comites/${comiteId}/reabrir`).expect(200);
+
+      await admin('patch', `${API}/participantes/${participanteId}/discricionario`)
+        .send({ fd: 0.03, codMotivador: 1, justificativa: 'Ajuste após reabertura' })
+        .expect(200);
     });
   });
 
   // ------------------------------------------------------------------
-  // Dashboard e auditoria do frontend
+  // Consolidação, histórico e contrato de erro
   // ------------------------------------------------------------------
 
-  describe('Dashboard e auditoria', () => {
-    it('devolve o resumo da página inicial', async () => {
-      const resposta = await autenticado('get', '/api/painel').expect(200);
+  describe('Consolidação e histórico', () => {
+    it('a visão geral consolida KPIs e alertas do ciclo', async () => {
+      const resposta = await admin('get', `${API}/consolidacao/visao-geral?ciclo=2026`).expect(200);
 
-      expect(resposta.body.participantes).toBe(3);
-      expect(resposta.body.grupos).toBeGreaterThanOrEqual(1);
-      expect(resposta.body.comites).toBeGreaterThanOrEqual(1);
-      expect(resposta.body.pool.poolTotal).toBeGreaterThan(0);
+      expect(resposta.body.ciclo).toBe(2026);
+      expect(resposta.body.kpis.participantes).toBe(3);
+      expect(resposta.body.kpis.poolDisponivel).toBeGreaterThan(0);
+      expect(Array.isArray(resposta.body.alertas)).toBe(true);
     });
 
-    it('devolve as séries dos gráficos', async () => {
-      const resposta = await autenticado('get', '/api/painel/graficos').expect(200);
-
-      expect(Array.isArray(resposta.body.porNivelCargo)).toBe(true);
-      expect(Array.isArray(resposta.body.porStatusAnalise)).toBe(true);
+    it('o comparativo consolida vários comitês', async () => {
+      const resposta = await admin('get', `${API}/consolidacao/comparativo?ciclo=2026`).expect(200);
+      expect(resposta.body.consolidado.participantes).toBe(3);
     });
 
-    it('aceita registros de auditoria vindos do frontend', async () => {
-      await autenticado('post', '/api/logs-auditoria')
-        .send({ action: 'UPDATE_DISCRETIONARY', entity: 'PARTICIPANT', entityId: 'abc', details: { de: 1 } })
+    it('os nominais listam quem recebeu discricionário', async () => {
+      const resposta = await admin(
+        'get',
+        `${API}/consolidacao/discricionarios-nominais?ciclo=2026`,
+      ).expect(200);
+
+      expect(resposta.body.total).toBeGreaterThanOrEqual(1);
+      expect(resposta.body.itens[0]).toHaveProperty('fdPp');
+    });
+
+    it('2025 permanece intacto depois de todo o trabalho em 2026', async () => {
+      const resposta = await admin('get', `${API}/consolidacao/visao-geral?ciclo=2025`).expect(200);
+
+      expect(resposta.body.ciclo).toBe(2025);
+      expect(resposta.body.kpis.participantes).toBe(3);
+      expect(resposta.body.kpis.poolConsumido).toBe(0);
+    });
+
+    it('recarregar 2026 do zero não apaga 2025', async () => {
+      await admin('post', `${API}/uploads`)
+        .field('tipoBase', 'PRINCIPAL')
+        .field('modo', 'COMPLETA')
+        .field('ciclo', '2026')
+        .field('confirmarReinicioDoCiclo', 'true')
+        .attach('file', Buffer.from(csvCiclo('A26')), 'base-2026-recarga.csv')
         .expect(201);
 
-      const resposta = await autenticado('get', '/api/logs-auditoria?origem=FRONTEND').expect(200);
-      expect(resposta.body.total).toBeGreaterThanOrEqual(1);
+      const de2025 = await admin('get', `${API}/participantes?ciclo=2025`).expect(200);
+      expect(de2025.body.total).toBe(3);
+    });
+
+    it('a carga completa exige confirmação quando há trabalho no ciclo', async () => {
+      const resposta = await admin('post', `${API}/uploads`)
+        .field('tipoBase', 'PRINCIPAL')
+        .field('modo', 'COMPLETA')
+        .field('ciclo', '2026')
+        .attach('file', Buffer.from(csvCiclo('A26')), 'base.csv')
+        .expect(422);
+
+      expect(resposta.body.codigo).toBe('REINICIO_DE_CICLO_NAO_CONFIRMADO');
+    });
+
+    it('a pesquisa funcional mostra a situação do colaborador', async () => {
+      const resposta = await admin(
+        'get',
+        `${API}/participantes/pesquisa?termo=A2601&ciclo=2026`,
+      ).expect(200);
+
+      expect(resposta.body[0]).toHaveProperty('situacao');
+      expect(resposta.body[0].comite).not.toBeNull();
     });
 
     it('devolve 404 no contrato padrão para recurso inexistente', async () => {
-      const resposta = await autenticado(
+      const resposta = await admin(
         'get',
-        '/api/grupos/00000000-0000-4000-8000-000000000000',
+        `${API}/comites/00000000-0000-4000-8000-000000000000`,
       ).expect(404);
 
       expect(resposta.body).toMatchObject({ statusCode: 404, error: 'Not Found' });
+    });
+
+    it('aceita auditoria vinda do frontend', async () => {
+      await admin('post', `${API}/audit`)
+        .send({ action: 'UPDATE_DISCRETIONARY', entity: 'PARTICIPANT', entityId: 'abc' })
+        .expect(201);
+
+      const resposta = await admin('get', `${API}/audit?origem=FRONTEND`).expect(200);
+      expect(resposta.body.total).toBeGreaterThanOrEqual(1);
     });
   });
 });

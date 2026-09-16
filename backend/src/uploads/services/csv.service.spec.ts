@@ -1,11 +1,10 @@
 import { ExcecaoUpload } from '../../common/filters';
-import { CsvService } from './csv.service';
-import { COLUNAS_BASE_ACRESCIMO, COLUNAS_BASE_PRINCIPAL } from './mapeamento-colunas';
-
-const CABECALHO_PRINCIPAL =
-  'FUNCIONAL;NOME;CARGO;NIVEL_CARGO;MODELO_AVALIACAO;AREA;AREA_ORIGEM;FPI;FPI_FINAL;FBPA;FD;VALORBASE;VALOR_PR_I;VALOR_PR_F;VLRTEORICO';
+import { CsvService, interpretarData } from './csv.service';
+import { CAMPOS_DECISAO, COLUNAS_BASE_ACRESCIMO, COLUNAS_BASE_PRINCIPAL } from './mapeamento-colunas';
 
 const csv = (...linhas: string[]) => Buffer.from(linhas.join('\n'), 'utf8');
+
+const CABECALHO_MINIMO = 'EMPLID;NAME;FPI;CALC4;VALORBASE;VLR_TEORICO';
 
 describe('CsvService', () => {
   const servico = new CsvService();
@@ -27,34 +26,36 @@ describe('CsvService', () => {
     });
 
     it('rejeita arquivo só com cabeçalho', () => {
-      expect(() => servico.ler(csv(CABECALHO_PRINCIPAL), COLUNAS_BASE_PRINCIPAL)).toThrow(
+      expect(() => servico.ler(csv(CABECALHO_MINIMO), COLUNAS_BASE_PRINCIPAL)).toThrow(
         /ao menos uma linha de dados/,
       );
     });
 
     it('rejeita arquivo sem as colunas obrigatórias e diz quais faltam', () => {
-      expect(() => servico.ler(csv('NOME;CARGO', 'Ana;Analista'), COLUNAS_BASE_PRINCIPAL)).toThrow(
-        /FUNCIONAL/,
+      expect(() => servico.ler(csv('NAME;AREA', 'Ana;TI'), COLUNAS_BASE_PRINCIPAL)).toThrow(
+        /EMPLID/,
       );
     });
 
     it('aceita cabeçalhos com acento, espaço ou caixa diferente', () => {
       const resultado = servico.ler(
         csv(
-          'Matrícula;Nome;Nível de Cargo;FPI;FBPA;VALORBASE;VlrTeorico',
-          '12345;Ana Souza;Pleno;1,10;1,00;10000;12000',
+          'Emplid;Name;FPI;Calc4;ValorBase;Vlr_Teorico;XlatLongName;Modelo_Avaliacao',
+          '80000001;Ana Souza;1,10;220.000,00;180.500,00;250.000,00;Coordenador;Institucional',
         ),
         COLUNAS_BASE_PRINCIPAL,
       );
 
       expect(resultado.registros).toHaveLength(1);
       expect(resultado.registros[0].dados).toMatchObject({
-        funcional: '12345',
+        emplid: '80000001',
         nome: 'Ana Souza',
-        nivelCargo: 'Pleno',
         fpi: 1.1,
-        valorBase: 10000,
-        vlrTeorico: 12000,
+        calc4: 220000,
+        valorBase: 180500,
+        vlrTeorico: 250000,
+        xlatlongname: 'Coordenador',
+        modeloAvaliacao: 'Institucional',
       });
     });
   });
@@ -63,10 +64,10 @@ describe('CsvService', () => {
     it('separa registros válidos dos inválidos sem descartar o arquivo', () => {
       const resultado = servico.ler(
         csv(
-          CABECALHO_PRINCIPAL,
-          '1001;Ana;Analista;Pleno;Corporativo;TI;;1,10;1,15;1,00;0,05;10000;11000;11500;12000',
-          '1002;Bruno;Analista;Pleno;Corporativo;TI;;NAO_E_NUMERO;;1,00;;10000;;;12000',
-          '1003;Carla;Analista;Sênior;Corporativo;TI;;1,20;;1,00;;9000;;;9500',
+          CABECALHO_MINIMO,
+          '80000001;Ana;1,10;220000;180500;250000',
+          '80000002;Bruno;NAO_E_NUMERO;220000;180500;250000',
+          '80000003;Carla;1,20;230000;190000;260000',
         ),
         COLUNAS_BASE_PRINCIPAL,
       );
@@ -80,33 +81,63 @@ describe('CsvService', () => {
 
     it('acusa coluna obrigatória vazia informando a linha', () => {
       const resultado = servico.ler(
-        csv(
-          CABECALHO_PRINCIPAL,
-          ';Sem Funcional;Analista;Pleno;Corporativo;TI;;1,10;;1,00;;10000;;;12000',
-        ),
+        csv(CABECALHO_MINIMO, ';Sem funcional;1,10;220000;180500;250000'),
         COLUNAS_BASE_PRINCIPAL,
       );
 
       expect(resultado.registros).toHaveLength(0);
-      expect(resultado.erros[0]).toMatchObject({ linha: 2, coluna: 'FUNCIONAL' });
+      expect(resultado.erros[0]).toMatchObject({ linha: 2, coluna: 'EMPLID' });
     });
 
-    it('campos opcionais ausentes viram null', () => {
+    it('interpreta booleanos de sócio', () => {
       const resultado = servico.ler(
-        csv('FUNCIONAL;NOME;FPI;FBPA;VALORBASE;VLRTEORICO', '1001;Ana;1,1;1;10000;12000'),
+        csv(
+          `${CABECALHO_MINIMO};SOCIO_ANO;SOCIO_ANO_ANTERIOR`,
+          '80000001;Ana;1,10;220000;180500;250000;Sim;Não',
+        ),
         COLUNAS_BASE_PRINCIPAL,
       );
 
-      expect(resultado.registros[0].dados).toMatchObject({ cargo: null, areaOrigem: null, fd: null });
+      expect(resultado.registros[0].dados).toMatchObject({
+        socioAno: true,
+        socioAnoAnterior: false,
+      });
+    });
+
+    it('interpreta datas em formato brasileiro e ISO', () => {
+      const resultado = servico.ler(
+        csv(`${CABECALHO_MINIMO};LAST_HIRE_DT`, '80000001;Ana;1,10;220000;180500;250000;15/03/2018'),
+        COLUNAS_BASE_PRINCIPAL,
+      );
+
+      expect(resultado.registros[0].dados.dataAdmissao).toBeInstanceOf(Date);
+      expect(interpretarData('2018-03-15')?.getFullYear()).toBe(2018);
+      expect(interpretarData('texto')).toBeNull();
+    });
+
+    it('coluna ausente do arquivo não entra no registro', () => {
+      // É o que impede a carga parcial de zerar campos que o arquivo não traz.
+      const resultado = servico.ler(
+        csv(CABECALHO_MINIMO, '80000001;Ana;1,10;220000;180500;250000'),
+        COLUNAS_BASE_PRINCIPAL,
+      );
+
+      expect('area' in resultado.registros[0].dados).toBe(false);
+      expect('totalCash' in resultado.registros[0].dados).toBe(false);
+    });
+
+    it('coluna presente mas vazia vira null', () => {
+      const resultado = servico.ler(
+        csv(`${CABECALHO_MINIMO};AREA`, '80000001;Ana;1,10;220000;180500;250000;'),
+        COLUNAS_BASE_PRINCIPAL,
+      );
+
+      expect(resultado.registros[0].dados.area).toBeNull();
     });
 
     it('ignora linhas totalmente em branco', () => {
       const resultado = servico.ler(
-        csv(
-          'FUNCIONAL;NOME;FPI;FBPA;VALORBASE;VLRTEORICO',
-          '1001;Ana;1,1;1;10000;12000',
-          ';;;;;',
-        ),
+        csv(CABECALHO_MINIMO, '80000001;Ana;1,10;220000;180500;250000', ';;;;;'),
         COLUNAS_BASE_PRINCIPAL,
       );
 
@@ -116,10 +147,7 @@ describe('CsvService', () => {
 
     it('relata colunas do arquivo que não são utilizadas', () => {
       const resultado = servico.ler(
-        csv(
-          'FUNCIONAL;NOME;FPI;FBPA;VALORBASE;VLRTEORICO;COLUNA_NOVA',
-          '1001;Ana;1,1;1;10000;12000;valor',
-        ),
+        csv(`${CABECALHO_MINIMO};COLUNA_NOVA`, '80000001;Ana;1,10;220000;180500;250000;valor'),
         COLUNAS_BASE_PRINCIPAL,
       );
 
@@ -128,28 +156,44 @@ describe('CsvService', () => {
   });
 
   describe('base de acréscimo', () => {
-    it('lê os acréscimos por área de origem', () => {
+    it('lê a linha de acréscimo com as flags de elegibilidade', () => {
       const resultado = servico.ler(
         csv(
-          'FUNCIONAL;AREA_ORIGEM;ACRESCIMO_PR_I;ACRESCIMO_PR_F;OBSERVACAO',
-          '1001;Comercial;R$ 1.500,50;R$ 1.700,25;Transferência em março',
+          'EMPLID;FLAG_CALCULAR_POOL;TIPO_SIMULADOR;IDPOOL;GRUPO_RANKING;VLR_TEORICO;VL_PR_I',
+          '80000002;Sim;Institucional;Dentro de Pool;;R$ 20.000,00;R$ 16.381,70',
         ),
         COLUNAS_BASE_ACRESCIMO,
       );
 
-      expect(resultado.registros[0].dados).toEqual({
-        funcional: '1001',
-        areaOrigem: 'Comercial',
-        valorAcrescimoPrI: 1500.5,
-        valorAcrescimoPrF: 1700.25,
-        observacao: 'Transferência em março',
+      expect(resultado.registros[0].dados).toMatchObject({
+        emplid: '80000002',
+        flagCalcularPool: true,
+        tipoSimulador: 'Institucional',
+        idpool: 'Dentro de Pool',
+        grupoRanking: null,
+        vlrTeorico: 20000,
+        vlPrI: 16381.7,
       });
     });
 
-    it('exige as colunas de acréscimo', () => {
+    it('exige as colunas de elegibilidade', () => {
       expect(() =>
-        servico.ler(csv('FUNCIONAL;AREA_ORIGEM', '1001;Comercial'), COLUNAS_BASE_ACRESCIMO),
-      ).toThrow(/ACRESCIMO_PR_I/);
+        servico.ler(csv('EMPLID;VLR_TEORICO', '80000002;20000'), COLUNAS_BASE_ACRESCIMO),
+      ).toThrow(/FLAG_CALCULAR_POOL|TIPO_SIMULADOR|IDPOOL/);
+    });
+  });
+
+  describe('campos de decisão', () => {
+    it('são os preservados na carga parcial', () => {
+      expect(CAMPOS_DECISAO).toEqual(
+        expect.arrayContaining([
+          'fd',
+          'notaDiscricionario',
+          'motivoDiscricionario',
+          'codMotivador',
+          'observacaoPoscomite',
+        ]),
+      );
     });
   });
 });

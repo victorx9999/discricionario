@@ -6,8 +6,8 @@ import { ContextoRequisicao, Publico, UsuarioAtual, UsuarioAutenticado } from '.
 import { LoginDto } from './dto/login.dto';
 import { RespostaLoginDto } from './dto/resposta-login.dto';
 
-@ApiTags('autenticacao')
-@Controller('autenticacao')
+@ApiTags('auth')
+@Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
