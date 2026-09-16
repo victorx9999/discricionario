@@ -57,6 +57,25 @@ services:
     networks:
       - discricionario-net
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: discricionario-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      API_URL: http://backend:3000
+    ports:
+      - '${FRONTEND_PORT:-4200}:4200'
+    volumes:
+      - ./frontend/src:/app/src
+      - frontend_node_modules:/app/node_modules
+    networks:
+      - discricionario-net
+
   pgadmin:
     image: dpage/pgadmin4:8
     container_name: discricionario-pgadmin
@@ -80,6 +99,7 @@ volumes:
   postgres_data:
   pgadmin_data:
   backend_node_modules:
+  frontend_node_modules:
 
 networks:
   discricionario-net:

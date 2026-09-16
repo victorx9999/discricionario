@@ -1,0 +1,165 @@
+:host {
+  display: block;
+}
+
+.cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+
+  h1 {
+    font-size: 22px;
+  }
+
+  p {
+    margin: 4px 0 0;
+    max-width: 68ch;
+  }
+}
+
+mat-stepper {
+  background: transparent;
+  margin-bottom: 20px;
+}
+
+.bloco + .bloco,
+.bloco + .acoes-passo,
+section.bloco,
+.painel-layouts {
+  margin-top: 14px;
+}
+
+.bloco > .aviso,
+.bloco > mat-checkbox,
+.bloco > button,
+.bloco > mat-progress-bar,
+.bloco > .rolar,
+.bloco > .kpis {
+  margin-top: 12px;
+}
+
+.formulario {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+
+  mat-form-field {
+    min-width: 240px;
+  }
+
+  .aviso {
+    flex: 1 1 320px;
+  }
+}
+
+.arquivo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.botao-arquivo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px dashed var(--app-border-forte);
+  border-radius: var(--app-raio);
+  padding: 7px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  background: var(--app-surface);
+
+  &:hover {
+    border-color: var(--app-brand);
+    color: var(--app-brand);
+  }
+
+  input[type='file'] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.nome-arquivo {
+  font-size: 12.5px;
+}
+
+.grupo-chips {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.rotulo-chips {
+  font-family: var(--app-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--app-muted);
+  margin-right: 4px;
+}
+
+.sub-titulo {
+  margin-top: 16px;
+}
+
+.tabela-bruta {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12.5px;
+
+  th,
+  td {
+    padding: 6px 10px;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--app-border);
+  }
+
+  th {
+    font-family: var(--app-cond);
+    font-weight: 700;
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--app-ink-2);
+    background: var(--app-surface-2);
+    position: sticky;
+    top: 0;
+  }
+
+  td {
+    font-family: var(--app-mono);
+    font-size: 11.5px;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.acoes-passo {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.layout + .layout {
+  margin-top: 12px;
+}
+
+@media (max-width: 700px) {
+  .formulario mat-form-field {
+    min-width: 100%;
+  }
+}

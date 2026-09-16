@@ -1,11 +1,25 @@
-# API — Discricionário de Remuneração
+# Discricionário de Remuneração
 
-API REST dos **Comitês Discricionários da Remuneração Variável**: carga das bases
+Sistema dos **Comitês Discricionários da Remuneração Variável** — API NestJS + frontend Angular.
+
+| Parte | Onde | O que é |
+| ----- | ---- | ------- |
+| **API** | [`backend/`](backend) | NestJS 10 · TypeORM · PostgreSQL 16. Todo o cálculo vive aqui. |
+| **Frontend** | [`frontend/`](frontend) · [README](frontend/README.md) | Angular 18 + Material 3. Escolhe o ciclo, exibe e envia o FD. |
+
+O restante deste documento descreve a API. A tela do comitê, a montagem do grupo e as
+convenções do frontend estão no [README do frontend](frontend/README.md).
+
+---
+
+## A API
+
+API REST dos comitês: carga das bases
 `TBPR_Simuladores` e `TBPR_Simuladores_Acres`, montagem dos comitês, lançamento do Fator
 Discricionário (FD) participante a participante, controle do pool, resumos por nível de cargo e
 modelo de avaliação, ATA e trilha de auditoria.
 
-O ambiente sobe inteiro com `docker compose up`: PostgreSQL, backend NestJS e pgAdmin.
+O ambiente sobe inteiro com `docker compose up`: PostgreSQL, backend NestJS, frontend Angular e pgAdmin.
 
 > **Histórico por ano.** Todo dado pertence a um **ciclo** (2025, 2026, 2027…). A carga completa
 > reinicia **apenas o ciclo alvo** — carregar 2027 não encosta em 2026. Admin e Atendimento
@@ -58,6 +72,13 @@ discricionario-remuneracao/
 │   │   ├── common/           # Paginação, filtros dinâmicos, erros, enums, utilitários
 │   │   └── config/           # Leitura centralizada do ambiente
 │   ├── test/                 # Testes de integração (e2e)
+│   └── Dockerfile
+├── frontend/                 # Angular 18 + Material 3 — ver frontend/README.md
+│   ├── src/app/
+│   │   ├── core/             # auth, http, ciclo.store, auditoria, models
+│   │   ├── shared/           # tabela dinâmica, gráficos, painel do FD, pipes
+│   │   ├── features/         # login, painel, comitês, consolidação, cargas, admin
+│   │   └── layout/           # shell com toolbar e seletor de ciclo
 │   └── Dockerfile
 ├── exemplos/                 # CSVs de exemplo das duas bases
 ├── infra/pgadmin/
@@ -150,7 +171,10 @@ curl -X PATCH http://localhost:3000/api/v1/ciclos/$ID_2026/fechar -H "Authorizat
 - **csv-parse** para as duas bases
 - **Swagger** em `/api/v1/docs`
 - **Jest** + **Supertest**
-- **Docker Compose**: PostgreSQL, backend e pgAdmin
+- **Docker Compose**: PostgreSQL, backend, frontend e pgAdmin
+
+No frontend: **Angular 18** + **Angular Material 3**, standalone components e signals.
+Detalhes em [`frontend/README.md`](frontend/README.md).
 
 ---
 
@@ -175,6 +199,9 @@ O backend aguarda o PostgreSQL ficar saudável e roda as migrations automaticame
 ```bash
 docker compose exec backend npm run seed
 ```
+
+Com o seed pronto, o frontend está em **http://localhost:4200** — entre com
+`admin@discricionario.local` / `Senha@123`.
 
 ### Fora do Docker
 
@@ -206,6 +233,7 @@ docker compose restart backend
 
 | Serviço | URL | Credenciais |
 | ------- | --- | ----------- |
+| Frontend | http://localhost:4200 | veja os usuários do seed abaixo |
 | API | http://localhost:3000/api/v1 | JWT |
 | Swagger | http://localhost:3000/api/v1/docs | — |
 | pgAdmin | http://localhost:5050 | `admin@discricionario.local` / `admin` |

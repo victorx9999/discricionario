@@ -1,0 +1,463 @@
+<div class="pagina">
+  <header class="cabecalho">
+    <div>
+      <h1>Cargas de base</h1>
+      <p class="sub">
+        O arquivo é sempre analisado antes de gravar. A carga vale para o ciclo selecionado na
+        barra superior
+        @if (ciclos.ano(); as ano) { — <strong>{{ ano }}</strong> } e não toca nos outros anos.
+      </p>
+    </div>
+    <button mat-stroked-button type="button" (click)="carregarHistorico()">
+      <mat-icon>refresh</mat-icon>
+      Atualizar histórico
+    </button>
+  </header>
+
+  <mat-stepper [linear]="true">
+    <!-- ------------------------------------------------------------------ -->
+    <mat-step label="Prévia" [completed]="previaAprovada()">
+      <div class="bloco">
+        <div class="bloco-titulo">
+          <span>1. Escolha a base e analise o arquivo</span>
+          <small>nada é gravado neste passo</small>
+        </div>
+
+        <div class="formulario">
+          <mat-form-field>
+            <mat-label>Tipo de base</mat-label>
+            <mat-select [formControl]="ctrlTipoBase">
+              <mat-option value="PRINCIPAL">Base principal</mat-option>
+              <mat-option value="ACRESCIMO">Base de acréscimos</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          @if (tipoBase() === 'PRINCIPAL') {
+            <mat-form-field>
+              <mat-label>Modo da carga</mat-label>
+              <mat-select [formControl]="ctrlModo">
+                <mat-option value="COMPLETA">Completa (reinicia o ciclo)</mat-option>
+                <mat-option value="PARCIAL">Parcial (atualiza o que veio no arquivo)</mat-option>
+              </mat-select>
+            </mat-form-field>
+          } @else {
+            <div class="aviso atencao">
+              <mat-icon>info</mat-icon>
+              <span>
+                A base de acréscimos não tem modo parcial: cada envio é uma
+                <strong>recarga total</strong> dos acréscimos do ciclo selecionado. Os acréscimos
+                anteriores deste ano são substituídos pelos do arquivo.
+              </span>
+            </div>
+          }
+
+          <div class="arquivo">
+            <label class="botao-arquivo">
+              <input type="file" accept=".csv,text/csv" (change)="aoEscolherArquivo($event)" />
+              <mat-icon>attach_file</mat-icon>
+              <span>Escolher arquivo .csv</span>
+            </label>
+            @if (arquivo(); as escolhido) {
+              <span class="mono nome-arquivo">{{ escolhido.name }}</span>
+            } @else {
+              <span class="sub">Nenhum arquivo escolhido.</span>
+            }
+          </div>
+
+          <button
+            mat-flat-button
+            type="button"
+            [disabled]="!arquivo() || carregandoPrevia()"
+            (click)="analisar()"
+          >
+            <mat-icon>fact_check</mat-icon>
+            Analisar arquivo
+          </button>
+        </div>
+
+        @if (carregandoPrevia()) {
+          <mat-progress-bar mode="indeterminate" />
+          <p class="sub">Lendo o arquivo…</p>
+        }
+
+        @if (erroPrevia(); as mensagem) {
+          <div class="aviso bloqueio">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ mensagem }}</span>
+          </div>
+        }
+      </div>
+
+      @if (previa(); as p) {
+        <div class="bloco">
+          <div class="bloco-titulo">
+            <span>Resultado da prévia</span>
+            <small>delimitador detectado: "{{ p.delimitador }}"</small>
+          </div>
+
+          <div class="kpis">
+            <div class="kpi">
+              <span class="rotulo">Linhas no arquivo</span>
+              <span class="valor">{{ p.totalLinhas }}</span>
+            </div>
+            <div class="kpi">
+              <span class="rotulo">Colunas reconhecidas</span>
+              <span class="valor">{{ p.colunasReconhecidas.length }}</span>
+            </div>
+            <div class="kpi">
+              <span class="rotulo">Colunas ignoradas</span>
+              <span class="valor">{{ p.colunasIgnoradas.length }}</span>
+            </div>
+            <div class="kpi">
+              <span class="rotulo">Erros de linha</span>
+              <span class="valor" [class.negativo]="p.erros.length > 0">{{ p.erros.length }}</span>
+            </div>
+          </div>
+
+          @if (p.colunasObrigatoriasAusentes.length > 0) {
+            <div class="aviso bloqueio">
+              <mat-icon>block</mat-icon>
+              <span>
+                Faltam colunas obrigatórias, então a carga não pode seguir:
+                <strong>{{ p.colunasObrigatoriasAusentes.join(', ') }}</strong>. Corrija o arquivo e
+                analise de novo.
+              </span>
+            </div>
+          } @else {
+            <div class="aviso ok">
+              <mat-icon>check_circle</mat-icon>
+              <span>Todas as colunas obrigatórias estão presentes.</span>
+            </div>
+          }
+
+          <div class="grupo-chips">
+            <span class="rotulo-chips">Reconhecidas</span>
+            @for (coluna of p.colunasReconhecidas; track coluna) {
+              <span class="chip chip-ok">{{ coluna }}</span>
+            } @empty {
+              <span class="sub">Nenhuma coluna reconhecida.</span>
+            }
+          </div>
+
+          <div class="grupo-chips">
+            <span class="rotulo-chips">Ignoradas</span>
+            @for (coluna of p.colunasIgnoradas; track coluna) {
+              <span class="chip chip-neutro">{{ coluna }}</span>
+            } @empty {
+              <span class="sub">Nenhuma coluna ignorada.</span>
+            }
+          </div>
+
+          <div class="bloco-titulo sub-titulo">
+            <span>Amostra das primeiras linhas</span>
+          </div>
+          @if (p.amostra.length > 0) {
+            <div class="rolar">
+              <table class="tabela-bruta">
+                <thead>
+                  <tr>
+                    @for (coluna of amostraColunas(); track coluna) {
+                      <th>{{ coluna }}</th>
+                    }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (linha of p.amostra; track $index) {
+                    <tr>
+                      @for (coluna of amostraColunas(); track coluna) {
+                        <td>{{ valor(linha, coluna) }}</td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <p class="sub">O arquivo não trouxe linhas de amostra.</p>
+          }
+
+          <div class="bloco-titulo sub-titulo">
+            <span>Erros linha a linha</span>
+          </div>
+          @if (p.erros.length > 0) {
+            <div class="rolar">
+              <table mat-table [dataSource]="p.erros">
+                <ng-container matColumnDef="linha">
+                  <th mat-header-cell *matHeaderCellDef>Linha</th>
+                  <td mat-cell *matCellDef="let erro" class="num mono">{{ erro.linha }}</td>
+                </ng-container>
+                <ng-container matColumnDef="coluna">
+                  <th mat-header-cell *matHeaderCellDef>Coluna</th>
+                  <td mat-cell *matCellDef="let erro" class="mono">{{ erro.coluna || '—' }}</td>
+                </ng-container>
+                <ng-container matColumnDef="valor">
+                  <th mat-header-cell *matHeaderCellDef>Valor</th>
+                  <td mat-cell *matCellDef="let erro" class="mono">{{ valorErro(erro) }}</td>
+                </ng-container>
+                <ng-container matColumnDef="mensagem">
+                  <th mat-header-cell *matHeaderCellDef>Mensagem</th>
+                  <td mat-cell *matCellDef="let erro">{{ erro.mensagem }}</td>
+                </ng-container>
+                <tr mat-header-row *matHeaderRowDef="colunasErrosPrevia"></tr>
+                <tr mat-row *matRowDef="let linha; columns: colunasErrosPrevia"></tr>
+              </table>
+            </div>
+          } @else {
+            <p class="sub">Nenhum erro de linha na prévia.</p>
+          }
+        </div>
+      }
+
+      <div class="acoes-passo">
+        <button mat-flat-button type="button" matStepperNext [disabled]="!previaAprovada()">
+          Ir para a confirmação
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+      </div>
+    </mat-step>
+
+    <!-- ------------------------------------------------------------------ -->
+    <mat-step label="Confirmação">
+      <div class="bloco">
+        <div class="bloco-titulo">
+          <span>2. Confirme e processe</span>
+          <small>{{ tipoBase() }} · {{ modo() }}</small>
+        </div>
+
+        @if (!previaAprovada()) {
+          <div class="aviso bloqueio">
+            <mat-icon>block</mat-icon>
+            <span>Volte ao passo anterior e rode uma prévia válida antes de processar.</span>
+          </div>
+        } @else {
+          @if (exigeConfirmacao()) {
+            <div class="aviso bloqueio">
+              <mat-icon>warning</mat-icon>
+              <span>
+                A carga completa <strong>reinicia apenas o ciclo selecionado</strong>
+                @if (ciclos.ano(); as ano) { (<strong>{{ ano }}</strong>) }: comitês, ATAs, layouts
+                de colunas e discricionários daquele ano são apagados e reconstruídos a partir do
+                arquivo. Os demais ciclos ficam intactos.
+              </span>
+            </div>
+
+            <mat-checkbox [formControl]="ctrlConfirmaReinicio">
+              Confirmo o reinício do ciclo
+            </mat-checkbox>
+          } @else {
+            <div class="aviso ok">
+              <mat-icon>check_circle</mat-icon>
+              <span>
+                Carga parcial: só as linhas presentes no arquivo são inseridas ou atualizadas.
+                Comitês, ATAs e discricionários existentes são preservados.
+              </span>
+            </div>
+          }
+
+          <mat-checkbox [formControl]="ctrlVincularGrupo">
+            Criar e vincular comitês pelo GRUPO_RANKING
+          </mat-checkbox>
+          <p class="sub">
+            Com a opção ligada, cada GRUPO_RANKING do arquivo vira um comitê e os participantes já
+            entram vinculados.
+          </p>
+
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            [disabled]="!podeProcessar()"
+            (click)="processar()"
+          >
+            <mat-icon>play_arrow</mat-icon>
+            Processar carga
+          </button>
+        }
+
+        @if (processando()) {
+          <mat-progress-bar mode="indeterminate" />
+          <p class="sub">Processando a carga…</p>
+        }
+
+        @if (erroProcesso(); as mensagem) {
+          <div class="aviso bloqueio">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ mensagem }}</span>
+          </div>
+        }
+
+        @if (resultado(); as importacao) {
+          <div class="aviso" [class.ok]="importacao.status === 'CONCLUIDA'"
+               [class.atencao]="importacao.status === 'CONCLUIDA_COM_ERROS'"
+               [class.bloqueio]="importacao.status === 'FALHOU'">
+            <mat-icon>inventory</mat-icon>
+            <span>
+              {{ rotuloStatus(importacao.status) }} — {{ importacao.registrosInseridos }} inseridos,
+              {{ importacao.registrosAtualizados }} atualizados,
+              {{ importacao.registrosRemovidos }} removidos, {{ importacao.totalErros }} erros.
+            </span>
+          </div>
+        }
+      </div>
+
+      <div class="acoes-passo">
+        <button mat-stroked-button type="button" matStepperPrevious>
+          <mat-icon>arrow_back</mat-icon>
+          Voltar à prévia
+        </button>
+      </div>
+    </mat-step>
+  </mat-stepper>
+
+  <!-- -------------------------------------------------------------------- -->
+  <section class="bloco">
+    <div class="bloco-titulo">
+      <span>Histórico de cargas</span>
+      <small>clique numa linha com erros para ver o detalhe</small>
+    </div>
+
+    @if (carregandoHistorico()) {
+      <mat-progress-bar mode="indeterminate" />
+    } @else if (erroHistorico(); as mensagem) {
+      <div class="aviso bloqueio">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ mensagem }}</span>
+      </div>
+    } @else if (historico().length === 0) {
+      <p class="sub">Nenhuma carga registrada neste ciclo ainda.</p>
+    } @else {
+      <div class="rolar">
+        <table mat-table [dataSource]="historico()">
+          <ng-container matColumnDef="data">
+            <th mat-header-cell *matHeaderCellDef>Data</th>
+            <td mat-cell *matCellDef="let linha">{{ linha.criadoEm | dataBr: true }}</td>
+          </ng-container>
+          <ng-container matColumnDef="arquivo">
+            <th mat-header-cell *matHeaderCellDef>Arquivo</th>
+            <td mat-cell *matCellDef="let linha" class="mono">{{ linha.arquivo }}</td>
+          </ng-container>
+          <ng-container matColumnDef="tipo">
+            <th mat-header-cell *matHeaderCellDef>Tipo</th>
+            <td mat-cell *matCellDef="let linha">{{ linha.tipoBase }}</td>
+          </ng-container>
+          <ng-container matColumnDef="modo">
+            <th mat-header-cell *matHeaderCellDef>Modo</th>
+            <td mat-cell *matCellDef="let linha">{{ linha.modo }}</td>
+          </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let linha">
+              <span [class]="classeStatus(linha.status)">{{ rotuloStatus(linha.status) }}</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="inseridos">
+            <th mat-header-cell *matHeaderCellDef>Inseridos</th>
+            <td mat-cell *matCellDef="let linha" class="num">{{ linha.registrosInseridos }}</td>
+          </ng-container>
+          <ng-container matColumnDef="atualizados">
+            <th mat-header-cell *matHeaderCellDef>Atualizados</th>
+            <td mat-cell *matCellDef="let linha" class="num">{{ linha.registrosAtualizados }}</td>
+          </ng-container>
+          <ng-container matColumnDef="removidos">
+            <th mat-header-cell *matHeaderCellDef>Removidos</th>
+            <td mat-cell *matCellDef="let linha" class="num">{{ linha.registrosRemovidos }}</td>
+          </ng-container>
+          <ng-container matColumnDef="erros">
+            <th mat-header-cell *matHeaderCellDef>Erros</th>
+            <td mat-cell *matCellDef="let linha" class="num">{{ linha.totalErros }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="colunasHistorico"></tr>
+          <tr
+            mat-row
+            *matRowDef="let linha; columns: colunasHistorico"
+            [class.selecionada]="importacaoSelecionada() === linha.id"
+            (click)="abrirErros(linha)"
+          ></tr>
+        </table>
+      </div>
+
+      @if (carregandoErros()) {
+        <mat-progress-bar mode="indeterminate" />
+      } @else if (erroErros(); as mensagem) {
+        <div class="aviso bloqueio">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ mensagem }}</span>
+        </div>
+      } @else if (errosImportacao(); as detalhe) {
+        <div class="bloco-titulo sub-titulo">
+          <span>Erros da carga selecionada</span>
+          <small class="mono">{{ detalhe.importacaoId }}</small>
+        </div>
+        @if (detalhe.linhas.length > 0) {
+          <div class="rolar">
+            <table class="tabela-bruta">
+              <thead>
+                <tr>
+                  @for (coluna of detalhe.colunas; track coluna) {
+                    <th>{{ coluna }}</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (linha of detalhe.linhas; track $index) {
+                  <tr>
+                    @for (coluna of detalhe.colunas; track coluna) {
+                      <td>{{ valor(linha, coluna) }}</td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="sub">A API não devolveu detalhes de erro para esta carga.</p>
+        }
+      }
+    }
+  </section>
+
+  <!-- -------------------------------------------------------------------- -->
+  <mat-expansion-panel class="painel-layouts">
+    <mat-expansion-panel-header>
+      <mat-panel-title>Layouts esperados dos arquivos</mat-panel-title>
+      <mat-panel-description>Colunas obrigatórias e opcionais por tipo de base</mat-panel-description>
+    </mat-expansion-panel-header>
+
+    @if (carregandoLayouts()) {
+      <mat-progress-bar mode="indeterminate" />
+    } @else if (erroLayouts(); as mensagem) {
+      <div class="aviso bloqueio">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ mensagem }}</span>
+      </div>
+    } @else {
+      @for (layout of layouts(); track layout.tipo) {
+        <div class="bloco layout">
+          <div class="bloco-titulo">
+            <span>{{ layout.tipo }}</span>
+            <small>{{ layout.obrigatorias.length }} obrigatórias · {{ layout.opcionais.length }} opcionais</small>
+          </div>
+          <div class="grupo-chips">
+            <span class="rotulo-chips">Obrigatórias</span>
+            @for (coluna of layout.obrigatorias; track coluna) {
+              <span class="chip chip-marca">{{ coluna }}</span>
+            } @empty {
+              <span class="sub">Nenhuma.</span>
+            }
+          </div>
+          <div class="grupo-chips">
+            <span class="rotulo-chips">Opcionais</span>
+            @for (coluna of layout.opcionais; track coluna) {
+              <span class="chip chip-neutro">{{ coluna }}</span>
+            } @empty {
+              <span class="sub">Nenhuma.</span>
+            }
+          </div>
+        </div>
+      } @empty {
+        <p class="sub">A API não devolveu layouts.</p>
+      }
+    }
+  </mat-expansion-panel>
+</div>

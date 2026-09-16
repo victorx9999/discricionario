@@ -1,0 +1,127 @@
+<div class="bloco painel">
+  <div class="bloco-titulo">
+    <span>Personalizar este comitê</span>
+    <small>a consultoria abre a tela já com esta configuração</small>
+  </div>
+
+  @if (!editavel()) {
+    <div class="aviso atencao">
+      <span>!</span>
+      <span>Só o Atendimento e o Admin alteram o layout. Você está vendo a configuração atual.</span>
+    </div>
+  }
+
+  <mat-tab-group>
+    <mat-tab label="Campos do painel">
+      <ng-template matTabContent>
+        <p class="sub explicacao">
+          Os valores que aparecem ao lado do nome do participante, na hora de decidir o FD.
+          Arraste para mudar a ordem.
+        </p>
+
+        <div
+          class="escolhidos"
+          cdkDropList
+          cdkDropListOrientation="horizontal"
+          (cdkDropListDropped)="mover('PAINEL', $event)"
+        >
+          @for (campo of visiveisPainel(); track campo.chave) {
+            <button
+              type="button"
+              class="campo ativo"
+              cdkDrag
+              [disabled]="!editavel()"
+              [matTooltip]="campo.descricao ?? campo.grupo"
+              (click)="alternar('PAINEL', campo.chave)"
+            >
+              <span class="arrasta" cdkDragHandle>⠿</span>
+              {{ campo.rotulo }}
+              <span class="x">×</span>
+            </button>
+          } @empty {
+            <span class="sub">Nenhum campo no painel — escolha abaixo.</span>
+          }
+        </div>
+
+        @for (grupo of disponiveisPainel(); track grupo.nome) {
+          <div class="grupo">
+            <span class="titulo-grupo">{{ grupo.nome }}</span>
+            @for (campo of grupo.campos; track campo.chave) {
+              <button
+                type="button"
+                class="campo"
+                [disabled]="!editavel()"
+                [matTooltip]="campo.descricao ?? ''"
+                (click)="alternar('PAINEL', campo.chave)"
+              >{{ campo.rotulo }}</button>
+            }
+          </div>
+        }
+      </ng-template>
+    </mat-tab>
+
+    <mat-tab label="Colunas da tabela">
+      <ng-template matTabContent>
+        <p class="sub explicacao">
+          As colunas da tabela de participantes, embaixo da tela. Arraste para mudar a ordem.
+        </p>
+
+        <div
+          class="escolhidos"
+          cdkDropList
+          cdkDropListOrientation="horizontal"
+          (cdkDropListDropped)="mover('TABELA', $event)"
+        >
+          @for (campo of visiveisTabela(); track campo.chave) {
+            <button
+              type="button"
+              class="campo ativo"
+              cdkDrag
+              [disabled]="!editavel()"
+              [matTooltip]="campo.descricao ?? campo.grupo"
+              (click)="alternar('TABELA', campo.chave)"
+            >
+              <span class="arrasta" cdkDragHandle>⠿</span>
+              {{ campo.rotulo }}
+              <span class="x">×</span>
+            </button>
+          } @empty {
+            <span class="sub">Nenhuma coluna escolhida — a tabela mostraria só o nome.</span>
+          }
+        </div>
+
+        @for (grupo of disponiveisTabela(); track grupo.nome) {
+          <div class="grupo">
+            <span class="titulo-grupo">{{ grupo.nome }}</span>
+            @for (campo of grupo.campos; track campo.chave) {
+              <button
+                type="button"
+                class="campo"
+                [disabled]="!editavel()"
+                [matTooltip]="campo.descricao ?? ''"
+                (click)="alternar('TABELA', campo.chave)"
+              >{{ campo.rotulo }}</button>
+            }
+          </div>
+        }
+      </ng-template>
+    </mat-tab>
+  </mat-tab-group>
+
+  @if (erro(); as texto) {
+    <div class="aviso bloqueio acoes-erro">
+      <span>✕</span><span>{{ texto }}</span>
+    </div>
+  }
+
+  <div class="acoes">
+    <button mat-flat-button color="primary" [disabled]="!editavel() || salvando()" (click)="salvar()">
+      Salvar layout
+    </button>
+    <button mat-stroked-button [disabled]="!editavel() || salvando()" (click)="restaurarPadrao()">
+      Voltar ao padrão
+    </button>
+    <button mat-button (click)="descartar()">Fechar</button>
+    <span class="sub mono rota">PUT /comites/:id/colunas</span>
+  </div>
+</div>

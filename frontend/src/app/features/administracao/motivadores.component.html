@@ -1,0 +1,192 @@
+<div class="pagina">
+  <header class="cabecalho">
+    <div>
+      <h1>Motivadores do discricionário</h1>
+      <p class="sub">
+        O limite do motivador é sempre o mais restritivo frente ao limite do ciclo: se o ciclo
+        permite ±10pp e o motivador SQV traz ±5pp, vale ±5pp.
+      </p>
+    </div>
+    <div class="acoes-cabecalho">
+      <mat-checkbox [checked]="mostrarRemovidos()" (change)="alternarRemovidos($event)">
+        Mostrar removidos
+      </mat-checkbox>
+      <button mat-stroked-button type="button" (click)="carregar()">
+        <mat-icon>refresh</mat-icon>
+        Recarregar
+      </button>
+    </div>
+  </header>
+
+  <!-- --------------------------------------------------------------------- -->
+  <section class="bloco">
+    <div class="bloco-titulo">
+      <span>Motivadores cadastrados</span>
+      <small>{{ lista().length }} registro(s)</small>
+    </div>
+
+    @if (carregando()) {
+      <mat-progress-bar mode="indeterminate" />
+    } @else if (erro(); as mensagem) {
+      <div class="aviso bloqueio">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ mensagem }}</span>
+      </div>
+    } @else if (lista().length === 0) {
+      <p class="sub">
+        Nenhum motivador cadastrado
+        @if (!mostrarRemovidos()) { — marque "Mostrar removidos" para ver os desativados }.
+      </p>
+    } @else {
+      <div class="rolar">
+        <table mat-table [dataSource]="lista()">
+          <ng-container matColumnDef="codigo">
+            <th mat-header-cell *matHeaderCellDef>Código</th>
+            <td mat-cell *matCellDef="let motivo" class="mono num">{{ motivo.codigo }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="descricao">
+            <th mat-header-cell *matHeaderCellDef>Descrição</th>
+            <td mat-cell *matCellDef="let motivo">{{ motivo.descricao }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="limiteFd">
+            <th mat-header-cell *matHeaderCellDef>Limite FD</th>
+            <td mat-cell *matCellDef="let motivo" class="num">
+              @if (motivo.limiteFd === null || motivo.limiteFd === undefined) {
+                <span class="sub">sem limite próprio</span>
+              } @else {
+                ±{{ motivo.limiteFd | pontosPercentuais }}
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="exigeJustificativa">
+            <th mat-header-cell *matHeaderCellDef>Exige justificativa</th>
+            <td mat-cell *matCellDef="let motivo">
+              <span class="chip" [class.chip-atencao]="motivo.exigeJustificativa"
+                    [class.chip-neutro]="!motivo.exigeJustificativa">
+                {{ motivo.exigeJustificativa ? 'Sim' : 'Não' }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="ativo">
+            <th mat-header-cell *matHeaderCellDef>Ativo</th>
+            <td mat-cell *matCellDef="let motivo">
+              <span class="chip" [class.chip-ok]="motivo.ativo" [class.chip-erro]="!motivo.ativo">
+                {{ motivo.ativo ? 'Ativo' : 'Removido' }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="acoes">
+            <th mat-header-cell *matHeaderCellDef>Ações</th>
+            <td mat-cell *matCellDef="let motivo" class="celula-acoes">
+              <button
+                mat-icon-button
+                type="button"
+                matTooltip="Editar"
+                aria-label="Editar motivador"
+                (click)="$event.stopPropagation(); editar(motivo)"
+              >
+                <mat-icon>edit</mat-icon>
+              </button>
+              @if (motivo.ativo) {
+                <button
+                  mat-icon-button
+                  type="button"
+                  matTooltip="Remover (desativa, não apaga)"
+                  aria-label="Remover motivador"
+                  [disabled]="acaoEmCurso() === motivo.id"
+                  (click)="$event.stopPropagation(); remover(motivo)"
+                >
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              } @else {
+                <button
+                  mat-icon-button
+                  type="button"
+                  matTooltip="Restaurar"
+                  aria-label="Restaurar motivador"
+                  [disabled]="acaoEmCurso() === motivo.id"
+                  (click)="$event.stopPropagation(); restaurar(motivo)"
+                >
+                  <mat-icon>restore_from_trash</mat-icon>
+                </button>
+              }
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="colunas"></tr>
+          <tr
+            mat-row
+            *matRowDef="let motivo; columns: colunas"
+            [class.selecionada]="editando()?.id === motivo.id"
+            (click)="editar(motivo)"
+          ></tr>
+        </table>
+      </div>
+    }
+  </section>
+
+  <!-- --------------------------------------------------------------------- -->
+  <section class="bloco">
+    <div class="bloco-titulo">
+      <span>{{ tituloFormulario() }}</span>
+      @if (editando()) {
+        <button mat-button type="button" (click)="novo()">Cancelar edição</button>
+      }
+    </div>
+
+    <form [formGroup]="form" class="formulario" (ngSubmit)="salvar()">
+      <mat-form-field class="campo-curto">
+        <mat-label>Código</mat-label>
+        <input matInput type="number" formControlName="codigo" />
+        @if (form.controls.codigo.touched && form.controls.codigo.invalid) {
+          <mat-error>Informe o código numérico.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field class="campo-largo">
+        <mat-label>Descrição</mat-label>
+        <input matInput formControlName="descricao" placeholder="SQV — saída por qualidade de vida" />
+        @if (form.controls.descricao.touched && form.controls.descricao.invalid) {
+          <mat-error>Informe a descrição.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field class="campo-medio">
+        <mat-label>Limite de FD do motivador</mat-label>
+        <input matInput type="number" step="0.01" formControlName="limiteFd" />
+        <mat-hint>
+          Em fração: 0,05 vale {{ 0.05 | pontosPercentuais }}. Deixe vazio para herdar o limite do
+          ciclo.
+        </mat-hint>
+      </mat-form-field>
+
+      <mat-form-field class="campo-curto">
+        <mat-label>Ordem</mat-label>
+        <input matInput type="number" formControlName="ordem" />
+      </mat-form-field>
+
+      <mat-checkbox formControlName="exigeJustificativa">Exige justificativa</mat-checkbox>
+      <mat-checkbox formControlName="ativo">Ativo</mat-checkbox>
+
+      <button mat-flat-button type="submit" [disabled]="salvando()">
+        <mat-icon>save</mat-icon>
+        {{ editando() ? 'Salvar alterações' : 'Criar motivador' }}
+      </button>
+    </form>
+
+    @if (salvando()) {
+      <mat-progress-bar mode="indeterminate" />
+    }
+    @if (erroFormulario(); as mensagem) {
+      <div class="aviso bloqueio">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ mensagem }}</span>
+      </div>
+    }
+  </section>
+</div>

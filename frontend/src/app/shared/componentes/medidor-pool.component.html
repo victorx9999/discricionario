@@ -1,0 +1,45 @@
+@if (pool(); as dados) {
+  <div class="medidor" [class.compacto]="compacto()">
+    <div class="kpis">
+      @if (!compacto()) {
+        <div class="kpi">
+          <span class="rotulo">Σ VLR teórico</span>
+          <span class="valor">{{ dados.vlrTeoricoTotal | moeda }}</span>
+        </div>
+      }
+      <div class="kpi">
+        <span class="rotulo">Pool disponível</span>
+        <span class="valor">{{ dados.poolDisponivel | moeda }}</span>
+      </div>
+      <div class="kpi">
+        <span class="rotulo">Consumido</span>
+        <span class="valor">{{ dados.poolConsumido | moeda }}</span>
+      </div>
+      <div class="kpi">
+        <span class="rotulo">Saldo</span>
+        <span class="valor" [class.positivo]="dados.saldo >= 0" [class.negativo]="dados.saldo < 0">
+          {{ dados.saldo | moeda }}
+        </span>
+      </div>
+    </div>
+
+    <div class="barra-area">
+      <div
+        class="barra"
+        role="progressbar"
+        [attr.aria-valuenow]="dados.percentualUtilizado"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        [attr.aria-label]="'Pool utilizado'"
+      >
+        <div class="preenchimento" [class]="classeBarra()" [style.width.%]="largura()"></div>
+      </div>
+      <span class="sub legenda">
+        {{ dados.percentualUtilizado | percentual }} do pool ·
+        {{ dados.percentual * 100 | percentual }} do Σ VLR_TEÓRICO
+      </span>
+    </div>
+  </div>
+} @else {
+  <div class="sub">Pool ainda não calculado.</div>
+}

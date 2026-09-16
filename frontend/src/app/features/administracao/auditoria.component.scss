@@ -1,0 +1,100 @@
+:host {
+  display: block;
+}
+
+.cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+
+  h1 {
+    font-size: 22px;
+  }
+
+  p {
+    margin: 4px 0 0;
+    max-width: 78ch;
+  }
+}
+
+section.bloco + section.bloco {
+  margin-top: 14px;
+}
+
+.bloco > .aviso,
+.bloco > .rolar,
+.bloco > mat-progress-bar,
+.bloco > p,
+.bloco > mat-paginator {
+  margin-top: 12px;
+}
+
+mat-paginator {
+  background: transparent;
+}
+
+.formulario {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 12px;
+
+  button {
+    align-self: center;
+  }
+}
+
+.campo-curto {
+  flex: 0 0 170px;
+}
+
+.campo-medio {
+  flex: 1 1 230px;
+  min-width: 190px;
+}
+
+.id-curto {
+  display: inline-block;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  font-size: 11px;
+}
+
+.valores {
+  max-width: 420px;
+
+  .antes {
+    color: var(--app-muted);
+    text-decoration: line-through;
+  }
+
+  .depois {
+    color: var(--app-ink);
+    font-weight: 600;
+  }
+
+  .seta {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+    color: var(--app-muted);
+  }
+}
+
+td .chip {
+  font-size: 11px;
+}
+
+@media (max-width: 760px) {
+  .campo-curto,
+  .campo-medio {
+    flex: 1 1 100%;
+  }
+}

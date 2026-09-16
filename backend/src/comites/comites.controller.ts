@@ -12,10 +12,10 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ContextoAuditoria } from '../auditoria/dto/registrar-auditoria.dto';
 import { ContextoRequisicao, Perfis, UsuarioAtual, UsuarioAutenticado } from '../auth/decorators';
-import { PerfilUsuario } from '../common/enums';
+import { ContextoColuna, PerfilUsuario } from '../common/enums';
 import { ListarParticipantesQueryDto } from '../participantes/dto';
 import { ParticipantesService } from '../participantes/participantes.service';
 import { ComitesService } from './comites.service';
@@ -85,11 +85,22 @@ export class ComitesController {
   }
 
   @Get(':id/colunas')
-  @ApiOperation({ summary: 'Layout da tabela do comitê (o salvo pelo Atendimento ou o padrão)' })
-  colunas(@Param('id', ParseUUIDPipe) id: string, @UsuarioAtual() usuario: UsuarioAutenticado) {
-    return this.comitesService
-      .buscarPorId(id, usuario)
-      .then((comite) => this.colunasService.obter(comite.id));
+  @ApiQuery({
+    name: 'contexto',
+    required: false,
+    enum: ContextoColuna,
+    description: 'TABELA (padrão) ou PAINEL. Sem o parâmetro, devolve os dois layouts.',
+  })
+  @ApiOperation({ summary: 'Layout do comitê: colunas da tabela e campos do painel de análise' })
+  async colunas(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UsuarioAtual() usuario: UsuarioAutenticado,
+    @Query('contexto') contexto?: ContextoColuna,
+  ) {
+    const comite = await this.comitesService.buscarPorId(id, usuario);
+    return contexto
+      ? this.colunasService.obter(comite.id, contexto)
+      : this.colunasService.obterLayout(comite.id);
   }
 
   @Put(':id/colunas')
@@ -107,14 +118,21 @@ export class ComitesController {
 
   @Delete(':id/colunas')
   @Perfis(PerfilUsuario.ADMIN, PerfilUsuario.ATENDIMENTO)
-  @ApiOperation({ summary: 'Restaura o layout padrão da tabela' })
+  @ApiQuery({
+    name: 'contexto',
+    required: false,
+    enum: ContextoColuna,
+    description: 'Sem o parâmetro, restaura tabela e painel de uma vez.',
+  })
+  @ApiOperation({ summary: 'Restaura o layout padrão do catálogo' })
   async restaurarColunas(
     @Param('id', ParseUUIDPipe) id: string,
     @UsuarioAtual() usuario: UsuarioAutenticado,
     @ContextoRequisicao() contexto: ContextoAuditoria,
+    @Query('contexto') contextoColuna?: ContextoColuna,
   ) {
     const comite = await this.comitesService.buscarPorId(id, usuario);
-    return this.colunasService.restaurarPadrao(comite, usuario, contexto);
+    return this.colunasService.restaurarPadrao(comite, usuario, contexto, contextoColuna);
   }
 
   // ----------------------------------------------------------------

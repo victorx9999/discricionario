@@ -1,0 +1,68 @@
+:host {
+  display: block;
+  min-height: 100%;
+}
+
+.tela {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px 48px;
+  background: var(--app-ground);
+}
+
+.cartao {
+  width: 100%;
+  max-width: 420px;
+  border-radius: var(--app-raio);
+  background: var(--app-surface);
+  box-shadow: var(--app-sombra);
+  overflow: hidden;
+}
+
+// Altura fixa para a barra não empurrar o card quando aparece.
+.faixa-progresso {
+  height: 4px;
+}
+
+.conteudo {
+  padding: 4px 24px 24px;
+}
+
+.marca {
+  margin-bottom: 18px;
+
+  h1 {
+    font-size: 24px;
+    color: var(--app-brand);
+  }
+
+  .sub {
+    margin: 6px 0 0;
+  }
+}
+
+.aviso {
+  margin: 0 0 14px;
+
+  .mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    flex: none;
+  }
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.entrar {
+  margin-top: 8px;
+  height: 44px;
+  font-family: var(--app-cond);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}

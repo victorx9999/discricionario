@@ -1,0 +1,264 @@
+<div class="pagina">
+  @if (carregando()) {
+    <div class="centro"><mat-spinner diameter="36" /></div>
+  } @else if (erro(); as texto) {
+    <div class="aviso bloqueio"><span>✕</span><span>{{ texto }}</span></div>
+  } @else if (comite(); as dados) {
+    <header class="cabecalho">
+      <div>
+        <h1>{{ dados.codigo }} · {{ dados.nome }}</h1>
+        <div class="sub">
+          @if (dados.area) { {{ dados.area }} · }
+          {{ resumo()?.totalParticipantes ?? 0 }} participantes ·
+          @if (dados.status === 'CONCLUIDO') {
+            <span class="chip chip-ok">Concluído</span>
+          } @else {
+            <span class="chip chip-atencao">Em andamento</span>
+          }
+          @if (resumo(); as r) {
+            @if (r.pendencias > 0) {
+              <span class="chip chip-erro">{{ r.pendencias }} pendência{{ r.pendencias > 1 ? 's' : '' }}</span>
+            }
+            @if (r.precisaRever) {
+              <span class="chip chip-erro">checagem de HC</span>
+            }
+            @if (r.pool.excedido) {
+              <span class="chip chip-erro">pool excedido</span>
+            }
+          }
+        </div>
+      </div>
+
+      <div class="acoes-cabecalho">
+        @if (podeMontar()) {
+          <button mat-stroked-button (click)="personalizando.set(!personalizando())">
+            <mat-icon>tune</mat-icon>
+            Personalizar
+          </button>
+          <button mat-stroked-button (click)="editarComite()">
+            <mat-icon>group_add</mat-icon>
+            Participantes
+          </button>
+        }
+      </div>
+    </header>
+
+    @if (personalizando() && layout(); as configuracao) {
+      <app-personalizar-comite
+        [comiteId]="comiteId()"
+        [layout]="configuracao"
+        [editavel]="podeMontar() && !somenteLeitura()"
+        (salvo)="aoSalvarLayout($event)"
+        (fechar)="personalizando.set(false)"
+      />
+    }
+
+    <mat-tab-group class="abas" animationDuration="0ms">
+      <!-- ============ ABA COMITÊ ============ -->
+      <mat-tab label="Comitê">
+        <div class="conteudo-aba">
+          <!-- 1. Resumo por nível de cargo -->
+          @if (resumo(); as r) {
+            <app-resumo-nivel [resumo]="r" />
+          }
+
+          <!-- Navegação entre participantes -->
+          <div class="navegacao">
+            <button mat-stroked-button [disabled]="!temAnterior()" (click)="anterior()">
+              <mat-icon>chevron_left</mat-icon> Anterior
+            </button>
+            <button mat-stroked-button [disabled]="!temProximo()" (click)="proximo()">
+              Próximo <mat-icon>chevron_right</mat-icon>
+            </button>
+
+            @if (indiceSelecionado() >= 0) {
+              <span class="sub mono contador">
+                {{ indiceSelecionado() + 1 }} de {{ participantes().length }} nesta página
+              </span>
+            }
+
+            <span class="espaco"></span>
+
+            @if (selecionado(); as pessoa) {
+              <span class="identificacao">
+                <b>{{ pessoa.nome }}</b>
+                <span class="sub">{{ pessoa.descrJobcode ?? pessoa.xlatlongname ?? '—' }}</span>
+              </span>
+              <span class="chip chip-neutro">
+                {{ pessoa.xlatlongname ?? 'Sem nível' }} · {{ pessoa.modeloAvaliacao ?? 'Sem modelo' }}
+              </span>
+            }
+          </div>
+
+          <!-- Campos de valor do painel, escolhidos pelo Atendimento -->
+          @if (selecionado(); as pessoa) {
+            <div class="bloco kpis campos-painel">
+              @for (campo of camposPainel(); track campo.chave) {
+                <div class="kpi">
+                  <span class="rotulo">{{ campo.rotulo }}</span>
+                  <span
+                    class="valor"
+                    [class.positivo]="campo.chave === 'diferencaDiscricionario' && pessoa.diferencaDiscricionario > 0"
+                    [class.negativo]="campo.chave === 'diferencaDiscricionario' && pessoa.diferencaDiscricionario < 0"
+                  >
+                    @switch (campo.tipo) {
+                      @case ('moeda') { {{ $any(pessoa)[campo.chave] | moeda }} }
+                      @case ('fator') { {{ $any(pessoa)[campo.chave] | fator }} }
+                      @case ('percentual') { {{ $any(pessoa)[campo.chave] | variacao }} }
+                      @case ('pontosPercentuais') { {{ $any(pessoa)[campo.chave] | pontosPercentuais }} }
+                      @default { {{ $any(pessoa)[campo.chave] ?? '—' }} }
+                    }
+                  </span>
+                </div>
+              } @empty {
+                <span class="sub">Nenhum campo escolhido para o painel — ajuste em Personalizar.</span>
+              }
+            </div>
+          }
+
+          <!-- 2. Meio: FD à esquerda, performance + gráficos à direita -->
+          <div class="meio">
+            <app-painel-discricionario
+              [participante]="selecionado()"
+              [ciclo]="ciclos.cicloAtual()"
+              [pool]="pool()"
+              [somenteLeitura]="somenteLeitura()"
+              (lancado)="aoLancar($event)"
+              (avancar)="proximo()"
+            />
+
+            <div class="coluna-direita">
+              <div class="bloco">
+                <div class="bloco-titulo">
+                  <span>Performance ponderada</span>
+                  <small>Σ(VLBASEMES × FPI) ÷ Σ(VLBASEMES)</small>
+                </div>
+                @if (performance(); as p) {
+                  <div class="kpis">
+                    <div class="kpi">
+                      <span class="rotulo">Antes</span>
+                      <span class="valor">{{ p.antes | fator }}</span>
+                    </div>
+                    <div class="kpi">
+                      <span class="rotulo">Depois do discricionário</span>
+                      <span class="valor">{{ p.depois | fator }}</span>
+                    </div>
+                    <div class="kpi">
+                      <span class="rotulo">Modelo</span>
+                      <span class="valor modelo">{{ p.modelo }}</span>
+                    </div>
+                  </div>
+                } @else {
+                  <span class="sub">Sem base de cálculo neste comitê.</span>
+                }
+              </div>
+
+              <app-bloco-graficos [dados]="graficos()" />
+            </div>
+          </div>
+
+          <!-- 3. Tabela embaixo -->
+          <div class="area-tabela">
+            @if (carregandoLinhas()) {
+              <div class="centro"><mat-spinner diameter="28" /></div>
+            } @else {
+              <app-tabela-participantes
+                [linhas]="participantes()"
+                [colunas]="colunasTabela()"
+                [selecionadoId]="selecionado()?.id ?? null"
+                (selecionar)="selecionarParticipante($event)"
+              />
+            }
+
+            <mat-paginator
+              [length]="total()"
+              [pageSize]="tamanho()"
+              [pageIndex]="pagina()"
+              [pageSizeOptions]="[10, 25, 50, 100]"
+              (page)="trocarPagina($event)"
+              aria-label="Páginas da tabela de participantes"
+            />
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- ============ ABA POOL ============ -->
+      <mat-tab label="Pool">
+        <div class="conteudo-aba">
+          <div class="bloco">
+            <div class="bloco-titulo">
+              <span>Pool do comitê</span>
+              <small>1% do Σ VLR_TEÓRICO dos participantes</small>
+            </div>
+            <app-medidor-pool [pool]="pool()" />
+
+            <div class="aviso atencao margem">
+              <span>!</span>
+              <span>
+                Lançamento que estoura o pool é <b>recusado pela API</b>
+                (<span class="mono">422 POOL_EXCEDIDO</span>) — nada é gravado pela metade.
+                Discricionários negativos devolvem verba ao pool.
+              </span>
+            </div>
+          </div>
+
+          <div class="bloco">
+            <div class="bloco-titulo">
+              <span>Quem consumiu</span>
+              <small>{{ consumidores().length }} lançamento{{ consumidores().length === 1 ? '' : 's' }}</small>
+            </div>
+            <div class="rolar">
+              <table class="tabela-simples">
+                <thead>
+                  <tr>
+                    <th>Participante</th>
+                    <th>Nível</th>
+                    <th class="num">FD</th>
+                    <th class="num">PR sem disc.</th>
+                    <th class="num">PR pós disc.</th>
+                    <th class="num">Impacto</th>
+                    <th>Motivador</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (linha of consumidores(); track linha.id) {
+                    <tr>
+                      <td><b>{{ linha.nome }}</b></td>
+                      <td>{{ linha.xlatlongname ?? '—' }}</td>
+                      <td class="num">{{ linha.fd | pontosPercentuais }}</td>
+                      <td class="num">{{ linha.prSemDiscricionario | moeda }}</td>
+                      <td class="num">{{ linha.prPosDiscricionario | moeda }}</td>
+                      <td
+                        class="num"
+                        [class.positivo]="linha.diferencaDiscricionario > 0"
+                        [class.negativo]="linha.diferencaDiscricionario < 0"
+                      >{{ linha.diferencaDiscricionario | moeda: true }}</td>
+                      <td>{{ linha.motivoDiscricionario ?? '—' }}</td>
+                    </tr>
+                  } @empty {
+                    <tr><td colspan="7" class="sub">Nenhum discricionário lançado nesta página.</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div class="sub nota-pagina">
+              Mostra os lançamentos da página carregada. A visão completa do ciclo está em Consolidação.
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- ============ ABA ATA ============ -->
+      <mat-tab label="ATA">
+        <div class="conteudo-aba">
+          <app-aba-ata
+            [comiteId]="comiteId()"
+            [comite]="dados"
+            [somenteLeitura]="ciclos.somenteLeitura()"
+            (comiteAtualizado)="aoMudarComite()"
+          />
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  }
+</div>

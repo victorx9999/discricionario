@@ -1,0 +1,74 @@
+:host {
+  display: block;
+}
+
+.cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+
+  h1 {
+    font-size: 22px;
+  }
+
+  p {
+    margin: 4px 0 0;
+    max-width: 76ch;
+  }
+}
+
+section.bloco + section.bloco {
+  margin-top: 14px;
+}
+
+.bloco > .aviso,
+.bloco > .rolar,
+.bloco > mat-progress-bar,
+.bloco > p {
+  margin-top: 12px;
+}
+
+.formulario {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 12px;
+
+  mat-checkbox {
+    align-self: center;
+  }
+
+  button {
+    align-self: center;
+  }
+}
+
+.campo-curto {
+  flex: 0 0 130px;
+}
+
+.campo-medio {
+  flex: 1 1 230px;
+  min-width: 200px;
+}
+
+.campo-largo {
+  flex: 2 1 320px;
+  min-width: 240px;
+}
+
+td .chip {
+  font-size: 11px;
+}
+
+@media (max-width: 760px) {
+  .campo-curto,
+  .campo-medio,
+  .campo-largo {
+    flex: 1 1 100%;
+  }
+}

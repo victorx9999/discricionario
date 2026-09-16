@@ -1,0 +1,39 @@
+:host { display: block; }
+
+.medidor {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.barra-area {
+  flex: 1;
+  min-width: 180px;
+}
+
+.barra {
+  height: 8px;
+  background: var(--app-surface-3);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.preenchimento {
+  height: 100%;
+  background: var(--serie-rv);
+  border-radius: 99px;
+  transition: width 0.35s ease;
+
+  &.alto     { background: var(--app-warn); }
+  &.excedido { background: var(--app-neg); }
+}
+
+.legenda {
+  display: block;
+  font-family: var(--app-mono);
+  font-size: 11.5px;
+  margin-top: 5px;
+}
+
+.compacto .kpi .valor { font-size: 16px; }

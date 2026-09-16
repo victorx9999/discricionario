@@ -1,0 +1,277 @@
+<div class="pagina">
+  <header class="cabecalho">
+    <h1>Consolidação</h1>
+    <p class="sub">
+      Visões que atravessam comitês do ciclo
+      @if (ciclos.ano(); as ano) { <strong>{{ ano }}</strong> }. Os números vêm calculados da API;
+      aqui só são exibidos.
+    </p>
+  </header>
+
+  <mat-tab-group (selectedIndexChange)="aoTrocarAba($event)">
+    <!-- ------------------------------------------------------------------ -->
+    <mat-tab label="Comparativo">
+      <div class="conteudo-aba">
+        <div class="bloco">
+          <div class="bloco-titulo">
+            <span>Comitês a comparar</span>
+            <small>{{ ctrlComites.value.length }} selecionado(s)</small>
+          </div>
+
+          @if (carregandoComites()) {
+            <mat-progress-bar mode="indeterminate" />
+          } @else if (erroComites(); as mensagem) {
+            <div class="aviso bloqueio">
+              <mat-icon>error_outline</mat-icon>
+              <span>{{ mensagem }}</span>
+            </div>
+          } @else if (listaComites().length === 0) {
+            <p class="sub">Nenhum comitê montado neste ciclo.</p>
+          } @else {
+            <div class="linha-form">
+              <mat-form-field class="campo-largo">
+                <mat-label>Comitês</mat-label>
+                <mat-select [formControl]="ctrlComites" multiple>
+                  @for (comite of listaComites(); track comite.id) {
+                    <mat-option [value]="comite.id">
+                      {{ comite.codigo }} — {{ comite.nome }}
+                    </mat-option>
+                  }
+                </mat-select>
+                <mat-hint>Selecione dois ou mais para o comparativo fazer sentido.</mat-hint>
+              </mat-form-field>
+
+              <button
+                mat-flat-button
+                type="button"
+                [disabled]="ctrlComites.value.length === 0 || carregandoComparativo()"
+                (click)="compararSelecionados()"
+              >
+                <mat-icon>compare_arrows</mat-icon>
+                Comparar
+              </button>
+            </div>
+          }
+        </div>
+
+        @if (carregandoComparativo()) {
+          <mat-progress-bar mode="indeterminate" />
+        } @else if (erroComparativo(); as mensagem) {
+          <div class="aviso bloqueio">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ mensagem }}</span>
+          </div>
+        } @else if (dadoComparativo(); as dado) {
+          @if (vazio(dado)) {
+            <p class="sub">A API respondeu sem conteúdo para os comitês selecionados.</p>
+          } @else {
+            <div class="bloco">
+              @if (resumoComparativo().length > 0) {
+                <div class="kpis">
+                  @for (par of resumoComparativo(); track par.chave) {
+                    <div class="kpi">
+                      <span class="rotulo">{{ par.chave }}</span>
+                      <span class="valor">{{ par.valor }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              @if (tabelaComparativo(); as tabela) {
+                <div class="bloco-titulo sub-titulo">
+                  <span>Linhas encontradas</span>
+                  <small class="mono">chave "{{ tabela.origem }}" · {{ tabela.linhas.length }} linha(s)</small>
+                </div>
+                <div class="rolar">
+                  <table class="tabela-bruta">
+                    <thead>
+                      <tr>
+                        @for (coluna of tabela.colunas; track coluna) {
+                          <th>{{ coluna }}</th>
+                        }
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (linha of tabela.linhas; track $index) {
+                        <tr>
+                          @for (coluna of tabela.colunas; track coluna) {
+                            <td>{{ celula(linha, coluna) }}</td>
+                          }
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              } @else {
+                <div class="aviso atencao">
+                  <mat-icon>info</mat-icon>
+                  <span>
+                    A resposta não trouxe nenhuma lista de registros que a tela saiba tabular. O
+                    formato exato deste endpoint depende da API — abaixo está o retorno bruto.
+                  </span>
+                </div>
+                <pre class="json">{{ jsonComparativo() }}</pre>
+              }
+            </div>
+          }
+        } @else {
+          <p class="sub">Selecione os comitês e clique em Comparar.</p>
+        }
+      </div>
+    </mat-tab>
+
+    <!-- ------------------------------------------------------------------ -->
+    <mat-tab label="Discricionários nominais">
+      <div class="conteudo-aba">
+        <div class="bloco">
+          <div class="bloco-titulo">
+            <span>Discricionários nominais do ciclo</span>
+            <button mat-stroked-button type="button" (click)="carregarNominais()">
+              <mat-icon>refresh</mat-icon>
+              Recarregar
+            </button>
+          </div>
+
+          @if (carregandoNominais()) {
+            <mat-progress-bar mode="indeterminate" />
+          } @else if (erroNominais(); as mensagem) {
+            <div class="aviso bloqueio">
+              <mat-icon>error_outline</mat-icon>
+              <span>{{ mensagem }}</span>
+            </div>
+          } @else if (dadoNominais(); as dado) {
+            @if (vazio(dado)) {
+              <p class="sub">A API respondeu sem conteúdo.</p>
+            } @else {
+              @if (resumoNominais().length > 0) {
+                <div class="kpis">
+                  @for (par of resumoNominais(); track par.chave) {
+                    <div class="kpi">
+                      <span class="rotulo">{{ par.chave }}</span>
+                      <span class="valor">{{ par.valor }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              @if (tabelaNominais(); as tabela) {
+                <div class="bloco-titulo sub-titulo">
+                  <span>Linhas encontradas</span>
+                  <small class="mono">chave "{{ tabela.origem }}" · {{ tabela.linhas.length }} linha(s)</small>
+                </div>
+                <div class="rolar">
+                  <table class="tabela-bruta">
+                    <thead>
+                      <tr>
+                        @for (coluna of tabela.colunas; track coluna) {
+                          <th>{{ coluna }}</th>
+                        }
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (linha of tabela.linhas; track $index) {
+                        <tr>
+                          @for (coluna of tabela.colunas; track coluna) {
+                            <td>{{ celula(linha, coluna) }}</td>
+                          }
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              } @else {
+                <div class="aviso atencao">
+                  <mat-icon>info</mat-icon>
+                  <span>
+                    Nenhuma lista tabulável na resposta. O formato exato deste endpoint depende da
+                    API — abaixo está o retorno bruto.
+                  </span>
+                </div>
+                <pre class="json">{{ jsonNominais() }}</pre>
+              }
+            }
+          } @else {
+            <p class="sub">Carregando na primeira abertura da aba.</p>
+          }
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- ------------------------------------------------------------------ -->
+    <mat-tab label="Controle de grupos">
+      <div class="conteudo-aba">
+        <div class="bloco">
+          <div class="bloco-titulo">
+            <span>Controle de grupos de ranking</span>
+            <button mat-stroked-button type="button" (click)="carregarGrupos()">
+              <mat-icon>refresh</mat-icon>
+              Recarregar
+            </button>
+          </div>
+
+          @if (carregandoGrupos()) {
+            <mat-progress-bar mode="indeterminate" />
+          } @else if (erroGrupos(); as mensagem) {
+            <div class="aviso bloqueio">
+              <mat-icon>error_outline</mat-icon>
+              <span>{{ mensagem }}</span>
+            </div>
+          } @else if (dadoGrupos(); as dado) {
+            @if (vazio(dado)) {
+              <p class="sub">A API respondeu sem conteúdo.</p>
+            } @else {
+              @if (resumoGrupos().length > 0) {
+                <div class="kpis">
+                  @for (par of resumoGrupos(); track par.chave) {
+                    <div class="kpi">
+                      <span class="rotulo">{{ par.chave }}</span>
+                      <span class="valor">{{ par.valor }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              @if (tabelaGrupos(); as tabela) {
+                <div class="bloco-titulo sub-titulo">
+                  <span>Linhas encontradas</span>
+                  <small class="mono">chave "{{ tabela.origem }}" · {{ tabela.linhas.length }} linha(s)</small>
+                </div>
+                <div class="rolar">
+                  <table class="tabela-bruta">
+                    <thead>
+                      <tr>
+                        @for (coluna of tabela.colunas; track coluna) {
+                          <th>{{ coluna }}</th>
+                        }
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (linha of tabela.linhas; track $index) {
+                        <tr>
+                          @for (coluna of tabela.colunas; track coluna) {
+                            <td>{{ celula(linha, coluna) }}</td>
+                          }
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              } @else {
+                <div class="aviso atencao">
+                  <mat-icon>info</mat-icon>
+                  <span>
+                    Nenhuma lista tabulável na resposta. O formato exato deste endpoint depende da
+                    API — abaixo está o retorno bruto.
+                  </span>
+                </div>
+                <pre class="json">{{ jsonGrupos() }}</pre>
+              }
+            }
+          } @else {
+            <p class="sub">Carregando na primeira abertura da aba.</p>
+          }
+        </div>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div>

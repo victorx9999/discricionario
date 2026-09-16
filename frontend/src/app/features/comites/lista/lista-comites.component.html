@@ -1,0 +1,155 @@
+<div class="pagina">
+  <header class="cabecalho">
+    <div>
+      <h1>Comitês</h1>
+      <p class="sub">Os comitês do ciclo selecionado na barra superior.</p>
+    </div>
+
+    @if (podeMontar()) {
+      <button mat-flat-button color="primary" (click)="montar()">
+        <mat-icon>add</mat-icon>
+        Montar comitê
+      </button>
+    }
+  </header>
+
+  <section class="filtros">
+    <mat-form-field class="campo-busca">
+      <mat-label>Buscar</mat-label>
+      <input
+        matInput
+        type="search"
+        [formControl]="busca"
+        placeholder="Código, nome ou área"
+        autocomplete="off"
+      />
+      <mat-icon matPrefix>search</mat-icon>
+      @if (busca.value) {
+        <button mat-icon-button matSuffix type="button" (click)="limparBusca()" aria-label="Limpar a busca">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="campo-status">
+      <mat-label>Status</mat-label>
+      <mat-select [formControl]="status">
+        @for (opcao of opcoesStatus; track opcao.valor) {
+          <mat-option [value]="opcao.valor">{{ opcao.rotulo }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <button mat-icon-button (click)="recarregar()" matTooltip="Recarregar a lista" aria-label="Recarregar a lista">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </section>
+
+  <div class="faixa-progresso">
+    @if (carregando()) {
+      <mat-progress-bar mode="indeterminate" />
+    }
+  </div>
+
+  @if (erro(); as mensagem) {
+    <p class="aviso bloqueio">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ mensagem }}</span>
+    </p>
+  }
+
+  @if (linhas().length) {
+    <div class="rolar">
+      <table mat-table [dataSource]="linhas()">
+        <ng-container matColumnDef="codigo">
+          <th mat-header-cell *matHeaderCellDef>Código</th>
+          <td mat-cell *matCellDef="let comite" class="mono">{{ comite.codigo }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="nome">
+          <th mat-header-cell *matHeaderCellDef>Nome</th>
+          <td mat-cell *matCellDef="let comite" class="nome">{{ comite.nome }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="area">
+          <th mat-header-cell *matHeaderCellDef>Área</th>
+          <td mat-cell *matCellDef="let comite">{{ comite.area || '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="tipo">
+          <th mat-header-cell *matHeaderCellDef>Tipo</th>
+          <td mat-cell *matCellDef="let comite">
+            <span class="chip chip-neutro">{{ rotuloTipo(comite.tipo) }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let comite">
+            <span class="chip" [class]="classeStatus(comite.status)">
+              {{ rotuloStatus(comite.status) }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="participantes">
+          <th mat-header-cell *matHeaderCellDef class="num">Participantes</th>
+          <td mat-cell *matCellDef="let comite" class="num">{{ comite.totalParticipantes ?? 0 }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="ata">
+          <th mat-header-cell *matHeaderCellDef class="centro">ATA</th>
+          <td mat-cell *matCellDef="let comite" class="centro">
+            @if (comite.temAta) {
+              <mat-icon class="tem-ata" matTooltip="ATA registrada">check_circle</mat-icon>
+            } @else {
+              <span class="sem-ata" matTooltip="Sem ATA">—</span>
+            }
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="colunas"></tr>
+        <tr
+          mat-row
+          *matRowDef="let comite; columns: colunas"
+          tabindex="0"
+          [attr.aria-label]="'Abrir o comitê ' + comite.nome"
+          (click)="abrir(comite)"
+          (keydown.enter)="abrir(comite)"
+        ></tr>
+      </table>
+    </div>
+
+    <mat-paginator
+      [length]="total()"
+      [pageIndex]="pagina()"
+      [pageSize]="tamanho()"
+      [pageSizeOptions]="tamanhosPagina"
+      (page)="trocarPagina($event)"
+      [showFirstLastButtons]="true"
+    />
+  } @else if (!carregando() && !erro()) {
+    <div class="vazio">
+      <mat-icon>groups</mat-icon>
+      @if (filtrando()) {
+        <p><b>Nenhum comitê bate com o filtro.</b></p>
+        <p class="sub">Limpe a busca ou troque o status para ver a lista inteira.</p>
+      } @else {
+        <p><b>Nenhum comitê neste ciclo.</b></p>
+        <p class="sub">
+          @if (podeMontar()) {
+            Carregue a base de participantes e monte o primeiro comitê do ano.
+          } @else {
+            Assim que você for incluído como responsável por um comitê, ele aparece aqui.
+          }
+        </p>
+        @if (podeMontar()) {
+          <button mat-stroked-button (click)="montar()">
+            <mat-icon>add</mat-icon>
+            Montar comitê
+          </button>
+        }
+      }
+    </div>
+  }
+</div>

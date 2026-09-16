@@ -1,0 +1,238 @@
+<div class="bloco">
+  <div class="bloco-titulo">
+    <span>ATA do comitê</span>
+    <small>PUT /comites/:id/ata</small>
+  </div>
+
+  @if (carregando()) {
+    <div class="sub">Carregando a ATA…</div>
+  } @else {
+    <div class="linha-campos">
+      <mat-form-field class="curto">
+        <mat-label>Data</mat-label>
+        <input
+          matInput
+          type="date"
+          [value]="data()"
+          (change)="data.set($any($event.target).value)"
+          [disabled]="travado()"
+        />
+      </mat-form-field>
+
+      <mat-form-field class="curto">
+        <mat-label>Início</mat-label>
+        <input
+          matInput
+          type="time"
+          [value]="horaInicio()"
+          (change)="horaInicio.set($any($event.target).value)"
+          [disabled]="travado()"
+        />
+      </mat-form-field>
+
+      <mat-form-field class="curto">
+        <mat-label>Fim</mat-label>
+        <input
+          matInput
+          type="time"
+          [value]="horaFim()"
+          (change)="horaFim.set($any($event.target).value)"
+          [disabled]="travado()"
+        />
+      </mat-form-field>
+    </div>
+
+    <!-- Presentes: escolhidos numa tabela de pessoas, nunca digitados -->
+    <div class="secao-presentes">
+      <div class="cabecalho-presentes">
+        <span class="sub">
+          Presentes — <b>selecionados de uma tabela de pessoas</b>
+        </span>
+        <button mat-stroked-button [disabled]="travado()" (click)="abrirSeletor()">
+          <mat-icon>person_add</mat-icon>
+          Adicionar presente
+        </button>
+      </div>
+
+      @for (presente of presentes(); track presente.usuarioId ?? presente.nome; let i = $index) {
+        <div class="presente">
+          <span class="nome">
+            <b>{{ presente.nome }}</b>
+          </span>
+
+          <mat-form-field class="papel" subscriptSizing="dynamic">
+            <mat-label>Papel</mat-label>
+            <mat-select
+              [value]="presente.papel"
+              (valueChange)="trocarPapel(i, $event)"
+              [disabled]="travado()"
+            >
+              @for (papel of papeis; track papel) {
+                <mat-option [value]="papel">{{ papel }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <button
+            mat-icon-button
+            [disabled]="travado()"
+            (click)="removerPresente(i)"
+            [attr.aria-label]="'Remover ' + presente.nome"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      } @empty {
+        <div class="sub vazio-presentes">
+          Nenhum presente ainda — use “Adicionar presente”.
+        </div>
+      }
+
+      @if (seletorAberto()) {
+        <div class="seletor">
+          <div class="bloco-titulo">
+            <span>Escolher presentes</span>
+            <small>GET /usuarios</small>
+          </div>
+
+          <mat-form-field class="busca" subscriptSizing="dynamic">
+            <mat-label>Buscar</mat-label>
+            <input
+              matInput
+              type="search"
+              [value]="busca()"
+              (input)="busca.set($any($event.target).value)"
+              placeholder="Nome, e-mail ou perfil"
+            />
+          </mat-form-field>
+
+          @if (carregandoPessoas()) {
+            <div class="sub">Carregando pessoas…</div>
+          } @else {
+            <div class="rolar tabela-pessoas">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="check"></th>
+                    <th>Nome</th>
+                    <th>E-mail</th>
+                    <th>Perfil</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (pessoa of pessoasDisponiveis(); track pessoa.id) {
+                    <tr
+                      [class.marcada]="estaMarcado(pessoa.id)"
+                      tabindex="0"
+                      (click)="alternarMarcado(pessoa.id)"
+                      (keydown.enter)="alternarMarcado(pessoa.id)"
+                    >
+                      <td class="check">
+                        <mat-icon>
+                          {{ estaMarcado(pessoa.id) ? 'check_box' : 'check_box_outline_blank' }}
+                        </mat-icon>
+                      </td>
+                      <td><b>{{ pessoa.nome }}</b></td>
+                      <td class="sub">{{ pessoa.email }}</td>
+                      <td><span class="chip chip-neutro">{{ pessoa.perfil }}</span></td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="4" class="sub vazio-presentes">
+                        Ninguém encontrado com esse termo.
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+
+          <div class="acoes-seletor">
+            <button
+              mat-flat-button
+              color="primary"
+              [disabled]="!marcados().length"
+              (click)="incluirMarcados()"
+            >
+              Incluir selecionados
+            </button>
+            <button mat-button (click)="seletorAberto.set(false)">Fechar</button>
+            <span class="sub mono">
+              {{ marcados().length ? marcados().length + ' marcado(s)' : 'nenhum marcado' }}
+            </span>
+          </div>
+        </div>
+      }
+    </div>
+
+    <mat-form-field class="observacoes">
+      <mat-label>Observações da reunião</mat-label>
+      <textarea
+        matInput
+        rows="3"
+        [value]="observacoes()"
+        (input)="observacoes.set($any($event.target).value)"
+        [disabled]="travado()"
+        maxlength="2000"
+      ></textarea>
+    </mat-form-field>
+  }
+</div>
+
+@if (erro(); as texto) {
+  <div class="aviso bloqueio"><span>✕</span><span>{{ texto }}</span></div>
+}
+
+@if (concluido()) {
+  <div class="aviso ok">
+    <span>✓</span>
+    <span>
+      Comitê concluído. Os lançamentos estão travados — para mexer de novo é
+      preciso reabrir.
+    </span>
+  </div>
+} @else if (pendencias(); as p) {
+  @if (p.total > 0) {
+    <div class="aviso atencao">
+      <span>!</span>
+      <span>
+        Faltam <b>{{ p.total }}</b> pendência{{ p.total === 1 ? '' : 's' }} para concluir:
+        @for (item of p.itens; track item.participanteId) {
+          <br /><b>{{ item.nome }}</b> — {{ item.motivo }}
+        }
+      </span>
+    </div>
+  } @else if (!temDataEHora()) {
+    <div class="aviso atencao">
+      <span>!</span>
+      <span>Sem pendências de lançamento. Informe <b>data e horários</b> para concluir.</span>
+    </div>
+  } @else if (!presentes().length) {
+    <div class="aviso atencao">
+      <span>!</span>
+      <span>Adicione ao menos um <b>presente</b> antes de concluir.</span>
+    </div>
+  } @else {
+    <div class="aviso ok">
+      <span>✓</span>
+      <span>Tudo pronto para concluir o comitê.</span>
+    </div>
+  }
+}
+
+<div class="acoes">
+  <button mat-stroked-button [disabled]="travado() || salvando()" (click)="salvar()">
+    Salvar ATA
+  </button>
+
+  @if (concluido()) {
+    <button mat-flat-button color="primary" [disabled]="somenteLeitura() || salvando()" (click)="reabrir()">
+      Reabrir comitê
+    </button>
+  } @else {
+    <button mat-flat-button color="primary" [disabled]="!podeConcluir()" (click)="concluir()">
+      Concluir comitê
+    </button>
+  }
+</div>

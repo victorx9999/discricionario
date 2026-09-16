@@ -1,0 +1,109 @@
+.cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+
+  h1 {
+    font-size: 22px;
+  }
+}
+
+.centro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 56px 0;
+}
+
+.aviso .mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.bloco,
+.bloco-tabela,
+.alertas {
+  margin-bottom: 14px;
+}
+
+.alertas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pool {
+  .pool-barra {
+    margin-top: 12px;
+    height: 10px;
+    border-radius: 99px;
+    background: var(--app-surface-3);
+    overflow: hidden;
+  }
+
+  .pool-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: var(--app-brand);
+    transition: width 0.3s ease;
+
+    &.alto {
+      background: var(--app-warn);
+    }
+
+    &.excedido {
+      background: var(--app-neg);
+    }
+  }
+
+  .rodape-pool {
+    margin: 10px 0 0;
+  }
+}
+
+.codigo {
+  color: var(--app-muted);
+  font-size: 11.5px;
+  margin-right: 8px;
+}
+
+.nome-comite {
+  font-weight: 600;
+}
+
+.marcadores {
+  display: inline-flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.acao {
+  width: 48px;
+  text-align: right;
+}
+
+.negativo {
+  color: var(--app-neg);
+  font-weight: 600;
+}
+
+// Ecoa as faixas da barra do pool nas linhas da tabela.
+.alto {
+  color: var(--app-warn);
+  font-weight: 600;
+}
+
+.excedido {
+  color: var(--app-neg);
+  font-weight: 700;
+}
+
+.vazio {
+  margin: 0;
+}

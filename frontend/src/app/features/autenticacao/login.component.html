@@ -1,0 +1,80 @@
+<div class="tela">
+  <mat-card class="cartao" appearance="outlined">
+    <div class="faixa-progresso">
+      @if (carregando()) {
+        <mat-progress-bar mode="indeterminate" />
+      }
+    </div>
+
+    <mat-card-content class="conteudo">
+      <header class="marca">
+        <h1>Discricionário de Remuneração</h1>
+        <p class="sub">
+          Sistema dos comitês de remuneração variável: ajuste discricionário, controle de pool e ATA
+          por ciclo.
+        </p>
+      </header>
+
+      @if (expirou()) {
+        <p class="aviso atencao">
+          <mat-icon>schedule</mat-icon>
+          <span>Sua sessão expirou. Entre de novo.</span>
+        </p>
+      }
+
+      @if (erro(); as mensagem) {
+        <p class="aviso bloqueio">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ mensagem }}</span>
+        </p>
+      }
+
+      <form class="formulario" [formGroup]="formulario" (ngSubmit)="entrar()" novalidate>
+        <mat-form-field>
+          <mat-label>E-mail</mat-label>
+          <input
+            matInput
+            type="email"
+            formControlName="email"
+            autocomplete="username"
+            placeholder="nome@empresa.com"
+          />
+          @if (controles.email.hasError('required')) {
+            <mat-error>Informe o e-mail.</mat-error>
+          } @else if (controles.email.hasError('email')) {
+            <mat-error>E-mail em formato inválido.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Senha</mat-label>
+          <input
+            matInput
+            [type]="mostrarSenha() ? 'text' : 'password'"
+            formControlName="senha"
+            autocomplete="current-password"
+          />
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            (click)="alternarSenha()"
+            [attr.aria-label]="mostrarSenha() ? 'Ocultar a senha' : 'Mostrar a senha'"
+            [attr.aria-pressed]="mostrarSenha()"
+          >
+            <mat-icon>{{ mostrarSenha() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          @if (controles.senha.hasError('required')) {
+            <mat-error>Informe a senha.</mat-error>
+          } @else if (controles.senha.hasError('minlength')) {
+            <mat-error>A senha tem no mínimo 6 caracteres.</mat-error>
+          }
+        </mat-form-field>
+
+        <button mat-flat-button color="primary" type="submit" class="entrar" [disabled]="carregando()">
+          {{ carregando() ? 'Entrando…' : 'Entrar' }}
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

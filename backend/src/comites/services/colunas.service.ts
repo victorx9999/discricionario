@@ -4,11 +4,12 @@ import { DataSource, Repository } from 'typeorm';
 import { AuditoriaService } from '../../auditoria/auditoria.service';
 import { ContextoAuditoria } from '../../auditoria/dto/registrar-auditoria.dto';
 import { UsuarioAutenticado } from '../../auth/decorators';
-import { AcaoAuditoria, OperacaoAuditoria } from '../../common/enums';
+import { AcaoAuditoria, ContextoColuna, OperacaoAuditoria } from '../../common/enums';
 import {
   COLUNAS_POR_CHAVE,
   COLUNAS_TABELA_PARTICIPANTES,
   layoutPadrao,
+  layoutPadraoPainel,
 } from '../../participantes/colunas-participante';
 import { SalvarColunasDto } from '../dto';
 import { ComiteColuna } from '../entities/comite-coluna.entity';
@@ -43,14 +44,27 @@ export class ColunasComiteService {
     private readonly auditoriaService: AuditoriaService,
   ) {}
 
-  /** Layout efetivo do comitê: o salvo, ou o padrão quando ainda não há um. */
-  async obter(comiteId: string): Promise<{ personalizado: boolean; colunas: ColunaResolvida[] }> {
-    const salvas = await this.colunas.find({ where: { comiteId }, order: { ordem: 'ASC' } });
+  /**
+   * Layout efetivo do comitê num contexto: o salvo, ou o padrão quando ainda
+   * não há um. TABELA são as colunas da tabela de participantes; PAINEL são os
+   * campos de valor do painel de análise.
+   */
+  async obter(
+    comiteId: string,
+    contexto: ContextoColuna = ContextoColuna.TABELA,
+  ): Promise<{ contexto: ContextoColuna; personalizado: boolean; colunas: ColunaResolvida[] }> {
+    const salvas = await this.colunas.find({
+      where: { comiteId, contexto },
+      order: { ordem: 'ASC' },
+    });
+
+    const padrao = contexto === ContextoColuna.PAINEL ? layoutPadraoPainel() : layoutPadrao();
 
     if (!salvas.length) {
       return {
+        contexto,
         personalizado: false,
-        colunas: layoutPadrao().map((coluna) => this.resolver(coluna)),
+        colunas: padrao.map((coluna) => this.resolver(coluna)),
       };
     }
 
@@ -70,7 +84,16 @@ export class ColunasComiteService {
       });
     }).sort((a, b) => a.ordem - b.ordem);
 
-    return { personalizado: true, colunas: completo };
+    return { contexto, personalizado: true, colunas: completo };
+  }
+
+  /** Os dois layouts de uma vez — é o que a tela do comitê carrega ao abrir. */
+  async obterLayout(comiteId: string) {
+    const [tabela, painel] = await Promise.all([
+      this.obter(comiteId, ContextoColuna.TABELA),
+      this.obter(comiteId, ContextoColuna.PAINEL),
+    ]);
+    return { tabela, painel };
   }
 
   /** Salva o layout escolhido pelo Atendimento. */
@@ -91,12 +114,16 @@ export class ColunasComiteService {
       );
     }
 
+    const contextoColuna = dto.contexto ?? ContextoColuna.TABELA;
+
+    // Substitui apenas o contexto informado: salvar o painel não apaga a tabela.
     await this.dataSource.transaction(async (manager) => {
-      await manager.delete(ComiteColuna, { comiteId: comite.id });
+      await manager.delete(ComiteColuna, { comiteId: comite.id, contexto: contextoColuna });
       await manager.insert(
         ComiteColuna,
         dto.colunas.map((coluna, indice) => ({
           comiteId: comite.id,
+          contexto: contextoColuna,
           chave: coluna.chave,
           visivel: coluna.visivel ?? true,
           ordem: coluna.ordem ?? indice,
@@ -115,17 +142,29 @@ export class ColunasComiteService {
       cicloId: comite.cicloId,
       comiteId: comite.id,
       usuario,
-      campoAlterado: 'colunas',
+      campoAlterado: contextoColuna === ContextoColuna.PAINEL ? 'campos do painel' : 'colunas',
       valorNovo: dto.colunas.filter((coluna) => coluna.visivel !== false).map((c) => c.chave),
       contexto,
     });
 
-    return this.obter(comite.id);
+    return this.obter(comite.id, contextoColuna);
   }
 
-  /** Volta o comitê ao layout padrão do catálogo. */
-  async restaurarPadrao(comite: Comite, usuario: UsuarioAutenticado, contexto?: ContextoAuditoria) {
-    await this.colunas.delete({ comiteId: comite.id });
+  /**
+   * Volta o comitê ao layout padrão do catálogo. Sem contexto informado,
+   * restaura os dois (tabela e painel).
+   */
+  async restaurarPadrao(
+    comite: Comite,
+    usuario: UsuarioAutenticado,
+    contexto?: ContextoAuditoria,
+    contextoColuna?: ContextoColuna,
+  ) {
+    await this.colunas.delete(
+      contextoColuna
+        ? { comiteId: comite.id, contexto: contextoColuna }
+        : { comiteId: comite.id },
+    );
 
     await this.auditoriaService.registrar({
       acao: AcaoAuditoria.COLUNAS_ALTERADAS,
@@ -135,12 +174,12 @@ export class ColunasComiteService {
       cicloId: comite.cicloId,
       comiteId: comite.id,
       usuario,
-      campoAlterado: 'colunas',
-      valorNovo: 'layout padrão restaurado',
+      campoAlterado: contextoColuna === ContextoColuna.PAINEL ? 'campos do painel' : 'colunas',
+      valorNovo: `layout padrão restaurado (${contextoColuna ?? 'TABELA e PAINEL'})`,
       contexto,
     });
 
-    return this.obter(comite.id);
+    return contextoColuna ? this.obter(comite.id, contextoColuna) : this.obterLayout(comite.id);
   }
 
   private resolver(coluna: {

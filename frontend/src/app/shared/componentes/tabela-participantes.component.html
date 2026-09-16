@@ -1,0 +1,60 @@
+<div class="rolar">
+  <table mat-table [dataSource]="linhas()" class="tabela">
+    <ng-container matColumnDef="nome" sticky>
+      <th mat-header-cell *matHeaderCellDef>Participante</th>
+      <td mat-cell *matCellDef="let linha">
+        <div class="pessoa">
+          <b>{{ linha.nome }}</b>
+          @if (linha.pendente) {
+            <mat-icon
+              class="alerta"
+              matTooltip="FD lançado sem motivador ou sem justificativa"
+              aria-label="Pendente"
+            >error_outline</mat-icon>
+          }
+          @if (linha.fdForaLimite) {
+            <mat-icon
+              class="alerta"
+              matTooltip="FD acima do limite, confirmado manualmente"
+              aria-label="Fora do limite"
+            >priority_high</mat-icon>
+          }
+        </div>
+      </td>
+    </ng-container>
+
+    @for (coluna of colunasVisiveis(); track coluna.chave) {
+      <ng-container [matColumnDef]="coluna.chave">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          [class.num]="ehNumerica(coluna.tipo)"
+          [style.min-width.px]="coluna.largura"
+          [matTooltip]="coluna.descricao ?? ''"
+        >{{ coluna.rotulo }}</th>
+        <td
+          mat-cell
+          *matCellDef="let linha"
+          [class.num]="ehNumerica(coluna.tipo)"
+          [class]="classeValor(linha, coluna.chave)"
+        >{{ valorDe(linha, coluna.chave) | celula: coluna.tipo }}</td>
+      </ng-container>
+    }
+
+    <tr mat-header-row *matHeaderRowDef="chavesExibidas(); sticky: true"></tr>
+    <tr
+      mat-row
+      *matRowDef="let linha; columns: chavesExibidas()"
+      [class.selecionada]="linha.id === selecionadoId()"
+      [attr.aria-selected]="linha.id === selecionadoId()"
+      tabindex="0"
+      (click)="aoClicar(linha)"
+      (keydown.enter)="aoClicar(linha)"
+      (keydown.space)="aoClicar(linha)"
+    ></tr>
+  </table>
+</div>
+
+@if (!linhas().length) {
+  <div class="sub vazio">Nenhum participante nesta página.</div>
+}

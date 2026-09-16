@@ -9,6 +9,7 @@ import {
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
+import { ContextoColuna } from '../../common/enums';
 import { Comite } from './comite.entity';
 
 /**
@@ -21,7 +22,7 @@ import { Comite } from './comite.entity';
  * As chaves válidas vêm do catálogo em `participantes/colunas-participante.ts`.
  */
 @Entity('comite_colunas')
-@Unique('uq_comite_coluna', ['comiteId', 'chave'])
+@Unique('uq_comite_coluna', ['comiteId', 'chave', 'contexto'])
 export class ComiteColuna {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -37,6 +38,14 @@ export class ComiteColuna {
   /** Chave da coluna no catálogo (ex.: `vlPrF`, `fdPp`, `totalCash`). */
   @Column({ length: 60 })
   chave: string;
+
+  /**
+   * Onde o campo aparece: TABELA (colunas da tabela de participantes) ou
+   * PAINEL (campos de valor do painel de análise). São layouts independentes,
+   * ambos montados pelo Atendimento.
+   */
+  @Column({ type: 'enum', enum: ContextoColuna, default: ContextoColuna.TABELA })
+  contexto: ContextoColuna;
 
   @Column({ default: true })
   visivel: boolean;

@@ -1,0 +1,121 @@
+<div class="bloco">
+  <div class="bloco-titulo">
+    <span>RV · TC · TC + P. Sócios</span>
+    <small>{{ periodo() }}</small>
+  </div>
+
+  @if (dados(); as grafico) {
+    <div class="area">
+      <svg
+        [attr.viewBox]="'0 0 ' + larguraSvg + ' ' + alturaSvg"
+        role="img"
+        [attr.aria-label]="'Remuneração variável, Total Cash e Total Cash com parcela de sócios de ' + periodo()"
+      >
+        @for (grade of linhasGrade(); track $index) {
+          <line
+            [attr.x1]="esquerda"
+            [attr.y1]="grade.y"
+            [attr.x2]="direita"
+            [attr.y2]="grade.y"
+            stroke="var(--app-border-forte)"
+            stroke-width="1"
+            fill="none"
+          />
+          @if (grade.comRotulo) {
+            <text
+              [attr.x]="esquerda - 7"
+              [attr.y]="grade.y + 3.5"
+              text-anchor="end"
+              font-size="9.5"
+              font-family="var(--app-mono)"
+              fill="var(--app-muted)"
+            >{{ curto(grade.valor) }}</text>
+          }
+        }
+
+        @for (marca of marcasAno(); track marca.ano) {
+          <text
+            [attr.x]="marca.x"
+            [attr.y]="base + 14"
+            text-anchor="middle"
+            font-size="10"
+            font-family="var(--app-mono)"
+            fill="var(--app-muted)"
+          >{{ marca.ano }}</text>
+        }
+
+        @for (serie of series(); track serie.chave) {
+          <path
+            [attr.d]="serie.caminho"
+            fill="none"
+            [attr.stroke]="serie.cor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          @for (ponto of serie.pontos; track ponto.ano) {
+            <circle
+              [attr.cx]="ponto.x"
+              [attr.cy]="ponto.y"
+              [attr.r]="ponto.ano === serie.ultimo?.ano ? 4.5 : 3"
+              [attr.fill]="serie.cor"
+              stroke="var(--app-surface-2)"
+              stroke-width="2"
+            />
+          }
+          @if (serie.ultimo; as fim) {
+            <text
+              [attr.x]="fim.x - 2"
+              [attr.y]="fim.y - 9"
+              text-anchor="end"
+              font-size="10"
+              font-weight="600"
+              font-family="var(--app-mono)"
+              fill="var(--app-ink)"
+            >{{ curto(fim.valor) }}</text>
+          }
+        }
+
+        @for (faixa of faixas(); track faixa.ano) {
+          <rect
+            [attr.x]="faixa.x"
+            y="0"
+            [attr.width]="faixa.largura"
+            [attr.height]="base"
+            fill="transparent"
+            class="faixa"
+            (mouseenter)="focar(faixa.ano)"
+            (mouseleave)="desfocar()"
+          />
+        }
+      </svg>
+
+      @if (faixaEmFoco(); as foco) {
+        <div class="dica" [style.left.%]="((foco.x + foco.largura / 2) / larguraSvg) * 100">
+          <b>{{ foco.ano }}</b>
+          @for (item of foco.valores; track item.nome) {
+            <span class="linha-dica">
+              <i [style.background]="item.cor"></i>{{ item.nome }} {{ item.valor | moeda }}
+            </span>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="legenda">
+      @for (serie of series(); track serie.chave) {
+        <span class="item">
+          <i [style.background]="serie.cor"></i>
+          {{ serie.nome }}
+          <b>{{ serie.variacao === null ? '—' : (serie.variacao | variacao) }}</b>
+        </span>
+      }
+    </div>
+
+    @if (grafico.rotuloComparativo) {
+      <div class="sub comparativo">Comparativo: {{ grafico.rotuloComparativo }}</div>
+    }
+  } @else {
+    <div class="sub vazio">Selecione um participante para ver as séries.</div>
+  }
+</div>

@@ -4,6 +4,7 @@ import {
   ArrayNotEmpty,
   IsArray,
   IsBoolean,
+  IsEnum,
   IsInt,
   IsOptional,
   IsString,
@@ -12,6 +13,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+import { ContextoColuna } from '../../common/enums';
 
 export class ColunaComiteDto {
   @ApiProperty({ example: 'prPosDiscricionario', description: 'Chave do catálogo de colunas' })
@@ -55,6 +57,17 @@ export class ColunaComiteDto {
  * comitê. A Consultoria abre o comitê já com esta configuração aplicada.
  */
 export class SalvarColunasDto {
+  @ApiPropertyOptional({
+    enum: ContextoColuna,
+    default: ContextoColuna.TABELA,
+    description:
+      'TABELA salva as colunas da tabela de participantes; PAINEL salva os campos de valor do ' +
+      'painel de análise. São layouts independentes: salvar um não apaga o outro.',
+  })
+  @IsOptional()
+  @IsEnum(ContextoColuna, { message: 'contexto deve ser TABELA ou PAINEL' })
+  contexto?: ContextoColuna;
+
   @ApiProperty({ type: [ColunaComiteDto] })
   @IsArray()
   @ArrayNotEmpty({ message: 'Informe ao menos uma coluna' })

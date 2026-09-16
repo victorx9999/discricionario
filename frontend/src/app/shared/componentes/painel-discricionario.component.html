@@ -1,0 +1,155 @@
+<div class="bloco">
+  <div class="bloco-titulo">
+    <span>Fator discricionário</span>
+    <small>
+      limite do ciclo ±{{ limiteCiclo() }}pp
+      @if (limiteEfetivo() < limiteCiclo()) {
+        · motivador limita a ±{{ limiteEfetivo() }}pp
+      }
+    </small>
+  </div>
+
+  @if (participante(); as pessoa) {
+    <div class="linha-slider">
+      <span class="valor-fd" [class.positivo]="fdPp() > 0" [class.negativo]="fdPp() < 0">
+        {{ fdPp() > 0 ? '+' : '' }}{{ fdPp() }}pp
+      </span>
+
+      <mat-slider
+        class="slider"
+        [min]="-limiteCiclo()"
+        [max]="limiteCiclo()"
+        step="0.5"
+        [discrete]="true"
+        [displayWith]="formatarPp"
+        [disabled]="somenteLeitura()"
+      >
+        <input
+          matSliderThumb
+          [value]="fdPp()"
+          (valueChange)="aoMoverSlider($event)"
+          aria-label="Fator discricionário em pontos percentuais"
+        />
+      </mat-slider>
+    </div>
+
+    <div class="campos">
+      <mat-form-field class="campo">
+        <mat-label>Motivador</mat-label>
+        <mat-select
+          [value]="codMotivador()"
+          (valueChange)="codMotivador.set($event)"
+          [disabled]="somenteLeitura() || zerando()"
+        >
+          @for (motivo of motivadores(); track motivo.id) {
+            <mat-option [value]="motivo.codigo">
+              {{ motivo.codigo }} · {{ motivo.descricao }}
+              @if (motivo.limiteFd !== null) {
+                <span class="limite-motivo">(±{{ motivo.limiteFd * 100 }}pp)</span>
+              }
+            </mat-option>
+          }
+        </mat-select>
+        @if (zerando()) {
+          <mat-hint>Zerar o FD remove motivador e justificativa.</mat-hint>
+        }
+      </mat-form-field>
+
+      <mat-form-field class="campo">
+        <mat-label>Justificativa</mat-label>
+        <input
+          matInput
+          [value]="justificativa()"
+          (input)="justificativa.set($any($event.target).value)"
+          [disabled]="somenteLeitura() || zerando()"
+          maxlength="500"
+          placeholder="O que sustenta essa decisão na ATA"
+        />
+      </mat-form-field>
+    </div>
+
+    @if (somenteLeitura()) {
+      <div class="aviso atencao">
+        <span>!</span>
+        <span>Ciclo fechado ou comitê concluído: os lançamentos estão travados.</span>
+      </div>
+    } @else if (erroApi(); as erro) {
+      <div class="aviso bloqueio">
+        <span>✕</span>
+        <span>
+          {{ mensagemErro() }}
+          @if (erro.codigo) {
+            <span class="mono codigo">{{ erro.statusCode }} {{ erro.codigo }}</span>
+          }
+        </span>
+      </div>
+    } @else if (foraDoLimite()) {
+      <div class="aviso bloqueio">
+        <span>✕</span>
+        <span>
+          @if (motivoSelecionado(); as motivo) {
+            O motivador <b>{{ motivo.descricao }}</b> aceita no máximo
+            <b>±{{ limiteEfetivo() }}pp</b>. Reduza o fator ou troque o motivador.
+          } @else {
+            O limite do ciclo é <b>±{{ limiteCiclo() }}pp</b>.
+          }
+        </span>
+      </div>
+    } @else if (faltaJustificar()) {
+      <div class="aviso atencao">
+        <span>!</span>
+        <span>Todo lançamento diferente de zero exige <b>motivador e justificativa</b>.</span>
+      </div>
+    } @else if (zerando()) {
+      <div class="aviso atencao">
+        <span>○</span>
+        <span>Sem discricionário. Salvar assim <b>remove</b> o lançamento anterior.</span>
+      </div>
+    } @else if (saldoProjetado() !== null && saldoProjetado()! < 0) {
+      <div class="aviso bloqueio">
+        <span>✕</span>
+        <span>
+          Este lançamento estoura o pool em <b>{{ -saldoProjetado()! | moeda }}</b>.
+          A API vai recusar e nada será gravado.
+        </span>
+      </div>
+    } @else {
+      <div class="aviso ok">
+        <span>✓</span>
+        <span>
+          Impacto projetado de <b>{{ impactoProjetado() | moeda: true }}</b>
+          @if (saldoProjetado() !== null) {
+            — sobram <b>{{ saldoProjetado()! | moeda }}</b> no pool.
+          }
+          <span class="sub confere">O valor gravado é o que a API calcular.</span>
+        </span>
+      </div>
+    }
+
+    <div class="acoes">
+      <button
+        mat-flat-button
+        color="primary"
+        [disabled]="!podeSalvar()"
+        (click)="salvar(true)"
+      >
+        {{ zerando() ? 'Zerar e avançar' : 'Salvar e avançar' }}
+      </button>
+      <button mat-stroked-button [disabled]="!podeSalvar()" (click)="salvar(false)">
+        Salvar
+      </button>
+      <button mat-button [disabled]="somenteLeitura() || salvando()" (click)="zerar()">
+        Limpar
+      </button>
+    </div>
+
+    @if (pessoa.fdForaLimite) {
+      <div class="sub marca-limite">
+        <mat-icon class="icone">priority_high</mat-icon>
+        Este lançamento foi confirmado acima do limite e está marcado no relatório.
+      </div>
+    }
+  } @else {
+    <div class="sub vazio">Escolha um participante na tabela para lançar o discricionário.</div>
+  }
+</div>

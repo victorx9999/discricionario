@@ -1,0 +1,80 @@
+:host { display: block; }
+
+.linha-slider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.valor-fd {
+  font-family: var(--app-cond);
+  font-weight: 700;
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+  min-width: 86px;
+  text-align: center;
+
+  &.positivo { color: var(--app-pos); }
+  &.negativo { color: var(--app-neg); }
+}
+
+.slider {
+  flex: 1;
+  min-width: 170px;
+}
+
+.campos {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+
+  .campo { flex: 1; min-width: 190px; }
+}
+
+.limite-motivo {
+  font-family: var(--app-mono);
+  font-size: 11px;
+  color: var(--app-muted);
+  margin-left: 4px;
+}
+
+.aviso { margin-top: 4px; }
+
+.codigo {
+  display: block;
+  font-size: 10.5px;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+
+.confere {
+  display: block;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.acoes {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.marca-limite {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  margin-top: 10px;
+  color: var(--app-warn);
+
+  .icone { font-size: 15px; width: 15px; height: 15px; }
+}
+
+.vazio {
+  padding: 26px 0;
+  text-align: center;
+}

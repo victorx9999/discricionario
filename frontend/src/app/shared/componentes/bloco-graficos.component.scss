@@ -1,0 +1,84 @@
+:host { display: block; }
+
+.area {
+  position: relative;
+}
+
+svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  overflow: visible;
+}
+
+.faixa { cursor: crosshair; }
+
+.dica {
+  position: absolute;
+  top: 18px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: var(--app-ink);
+  color: var(--app-surface);
+  font-family: var(--app-mono);
+  font-size: 11px;
+  line-height: 1.55;
+  padding: 6px 9px;
+  border-radius: 5px;
+  white-space: nowrap;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.linha-dica {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  i {
+    width: 9px;
+    height: 3px;
+    border-radius: 2px;
+    display: inline-block;
+    flex: none;
+  }
+}
+
+.legenda {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--app-ink-2);
+  font-family: var(--app-mono);
+
+  i {
+    width: 11px;
+    height: 3px;
+    border-radius: 2px;
+    display: inline-block;
+  }
+
+  b {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.comparativo,
+.vazio {
+  font-size: 11.5px;
+  margin-top: 6px;
+}
+
+.vazio { padding: 18px 0; text-align: center; }

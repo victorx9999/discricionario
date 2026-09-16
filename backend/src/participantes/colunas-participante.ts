@@ -507,15 +507,31 @@ export const COLUNAS_POR_CHAVE = new Map(
   COLUNAS_TABELA_PARTICIPANTES.map((coluna) => [coluna.chave, coluna]),
 );
 
-/** Layout inicial de um comitê recém-criado. */
-export function layoutPadrao(): Array<{
+/**
+ * Campos que o painel de análise mostra por padrão — os que a reunião olha ao
+ * decidir um FD. O Atendimento pode trocar esse conjunto por comitê.
+ */
+export const CAMPOS_PAINEL_PADRAO = [
+  'valorBase',
+  'fpi',
+  'fpiFinal',
+  'notaPosDiscricionario',
+  'prSemDiscricionario',
+  'prPosDiscricionario',
+  'diferencaDiscricionario',
+] as const;
+
+export interface LinhaLayout {
   chave: string;
   visivel: boolean;
   ordem: number;
   largura: number | null;
   fixa: boolean;
   rotulo: string | null;
-}> {
+}
+
+/** Layout inicial da TABELA de um comitê recém-criado. */
+export function layoutPadrao(): LinhaLayout[] {
   return COLUNAS_TABELA_PARTICIPANTES.map((coluna, indice) => ({
     chave: coluna.chave,
     visivel: coluna.padrao,
@@ -524,4 +540,21 @@ export function layoutPadrao(): Array<{
     fixa: Boolean(coluna.fixa),
     rotulo: null,
   }));
+}
+
+/** Layout inicial do PAINEL de análise de um comitê recém-criado. */
+export function layoutPadraoPainel(): LinhaLayout[] {
+  const ordemPadrao = CAMPOS_PAINEL_PADRAO as readonly string[];
+
+  return COLUNAS_TABELA_PARTICIPANTES.map((coluna, indice) => {
+    const posicao = ordemPadrao.indexOf(coluna.chave);
+    return {
+      chave: coluna.chave,
+      visivel: posicao >= 0,
+      ordem: posicao >= 0 ? posicao : 1000 + indice,
+      largura: null,
+      fixa: false,
+      rotulo: null,
+    };
+  }).sort((a, b) => a.ordem - b.ordem);
 }

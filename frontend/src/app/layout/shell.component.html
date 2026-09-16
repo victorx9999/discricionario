@@ -1,0 +1,79 @@
+<mat-toolbar class="barra">
+  <button mat-icon-button (click)="alternarMenu()" aria-label="Abrir ou fechar o menu">
+    <mat-icon>menu</mat-icon>
+  </button>
+
+  <span class="titulo">Discricionário</span>
+
+  <span class="espaco"></span>
+
+  @if (ciclos.somenteLeitura()) {
+    <span class="chip chip-atencao leitura" matTooltip="Ciclo fechado: os lançamentos estão travados.">
+      somente leitura
+    </span>
+  }
+
+  <button mat-button class="seletor-ciclo" [matMenuTriggerFor]="menuCiclo" aria-label="Trocar o ciclo">
+    <span class="rotulo-ciclo">Ciclo</span>
+    <span class="ano-ciclo">{{ ciclos.ano() ?? '—' }}</span>
+    <mat-icon class="seta">arrow_drop_down</mat-icon>
+  </button>
+
+  <mat-menu #menuCiclo="matMenu">
+    @for (ciclo of ciclos.ciclos(); track ciclo.id) {
+      <button mat-menu-item (click)="trocarCiclo(ciclo.ano)">
+        <span class="item-ciclo">
+          <b>{{ ciclo.ano }}</b>
+          @if (ciclo.ativo) {
+            <span class="chip chip-ok">ativo</span>
+          } @else if (ciclo.status === 'FECHADO') {
+            <span class="chip chip-neutro">fechado</span>
+          }
+        </span>
+      </button>
+    } @empty {
+      <button mat-menu-item disabled>Nenhum ciclo cadastrado</button>
+    }
+  </mat-menu>
+
+  <button mat-icon-button [matMenuTriggerFor]="menuUsuario" [attr.aria-label]="'Conta de ' + (usuario()?.nome ?? '')">
+    <span class="avatar">{{ iniciais() }}</span>
+  </button>
+
+  <mat-menu #menuUsuario="matMenu">
+    <div class="cabecalho-usuario">
+      <b>{{ usuario()?.nome }}</b>
+      <span class="sub">{{ usuario()?.email }}</span>
+      <span class="chip chip-marca">{{ usuario()?.perfil }}</span>
+    </div>
+    <button mat-menu-item (click)="sair()">
+      <mat-icon>logout</mat-icon>
+      <span>Sair</span>
+    </button>
+  </mat-menu>
+</mat-toolbar>
+
+<mat-sidenav-container class="container" autosize>
+  <mat-sidenav mode="side" [opened]="menuAberto()" class="lateral">
+    <mat-nav-list>
+      @for (item of itens(); track item.rota) {
+        @if (item.secao) {
+          <div class="secao">{{ item.secao }}</div>
+        }
+        <a
+          mat-list-item
+          [routerLink]="item.rota"
+          routerLinkActive="ativo"
+          [routerLinkActiveOptions]="{ exact: item.rota === '/painel' }"
+        >
+          <mat-icon matListItemIcon>{{ item.icone }}</mat-icon>
+          <span matListItemTitle>{{ item.rotulo }}</span>
+        </a>
+      }
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content>
+    <router-outlet />
+  </mat-sidenav-content>
+</mat-sidenav-container>

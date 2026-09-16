@@ -1,0 +1,102 @@
+.cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+
+  h1 {
+    font-size: 22px;
+  }
+
+  .sub {
+    margin: 2px 0 0;
+  }
+}
+
+.filtros {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.campo-busca {
+  flex: 1 1 320px;
+  max-width: 420px;
+}
+
+.campo-status {
+  flex: 0 0 200px;
+}
+
+// Altura fixa para a barra não empurrar a tabela a cada busca.
+.faixa-progresso {
+  height: 4px;
+  margin-bottom: 8px;
+}
+
+.aviso {
+  margin: 0 0 12px;
+
+  .mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    flex: none;
+  }
+}
+
+.nome {
+  font-weight: 600;
+}
+
+.centro {
+  text-align: center;
+}
+
+.tem-ata {
+  color: var(--app-pos);
+  font-size: 19px;
+  width: 19px;
+  height: 19px;
+  vertical-align: middle;
+}
+
+.sem-ata {
+  color: var(--app-muted);
+}
+
+table .mat-mdc-row:focus-visible {
+  outline: 2px solid var(--app-brand);
+  outline-offset: -2px;
+}
+
+.vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  padding: 48px 16px;
+  border: 1px dashed var(--app-border-forte);
+  border-radius: var(--app-raio);
+  background: var(--app-surface);
+
+  .mat-icon {
+    font-size: 34px;
+    width: 34px;
+    height: 34px;
+    color: var(--app-muted);
+    margin-bottom: 6px;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  button {
+    margin-top: 12px;
+  }
+}

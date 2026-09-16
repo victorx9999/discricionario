@@ -1,0 +1,133 @@
+:host { display: block; }
+
+.centro {
+  display: grid;
+  place-items: center;
+  padding: 48px 0;
+}
+
+.cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+
+  h1 {
+    font-size: clamp(20px, 3vw, 26px);
+    margin-bottom: 2px;
+  }
+
+  .sub {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+}
+
+.acoes-cabecalho {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.abas { margin-top: 6px; }
+
+.conteudo-aba {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.navegacao {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.espaco { flex: 1 1 auto; }
+
+.contador { font-size: 12px; }
+
+.identificacao {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  text-align: right;
+
+  b { font-family: var(--app-cond); font-size: 16px; }
+  .sub { font-size: 11.5px; }
+}
+
+.campos-painel {
+  // Os campos de valor que o Atendimento escolheu para este comitê.
+  row-gap: 12px;
+}
+
+.modelo { font-size: 14px; }
+
+// O layout que a reunião pediu: decisão à esquerda, contexto à direita,
+// e no contexto a performance ponderada em cima do bloco de gráficos.
+.meio {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.coluna-direita {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+@media (max-width: 980px) {
+  .meio { grid-template-columns: 1fr; }
+}
+
+.area-tabela {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tabela-simples {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12.5px;
+
+  th,
+  td {
+    padding: 7px 11px;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--app-border);
+  }
+
+  th {
+    background: var(--app-surface-2);
+    font-family: var(--app-cond);
+    font-weight: 700;
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--app-ink-2);
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+
+  td.positivo { color: var(--app-pos); font-weight: 600; }
+  td.negativo { color: var(--app-neg); font-weight: 600; }
+}
+
+.margem { margin-top: 12px; }
+
+.nota-pagina {
+  font-size: 11.5px;
+  margin-top: 8px;
+}

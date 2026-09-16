@@ -1,0 +1,334 @@
+<div class="pagina">
+  <header class="cabecalho">
+    <div>
+      <h1>{{ editando() ? 'Editar comitê' : 'Montar comitê' }}</h1>
+      <p class="sub">
+        O Atendimento define quem participa, o que a consultoria enxerga e quem responde pelo grupo.
+        O pool sai de quem está na lista.
+      </p>
+    </div>
+  </header>
+
+  <mat-stepper [linear]="!editando()" #stepper>
+    <!-- ================= PASSO 1 ================= -->
+    <mat-step [completed]="dadosValidos()" label="Dados do comitê">
+      <div class="passo">
+        <div class="linha-campos">
+          <mat-form-field class="curto">
+            <mat-label>Código</mat-label>
+            <input
+              matInput
+              [value]="codigo()"
+              (input)="codigo.set($any($event.target).value)"
+              placeholder="100702"
+              maxlength="50"
+            />
+            <mat-hint>O mesmo código do GRUPO_RANKING da base</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field class="longo">
+            <mat-label>Nome</mat-label>
+            <input
+              matInput
+              [value]="nome()"
+              (input)="nome.set($any($event.target).value)"
+              placeholder="WMS PRIVATE"
+              maxlength="150"
+            />
+          </mat-form-field>
+        </div>
+
+        <div class="linha-campos">
+          <mat-form-field class="longo">
+            <mat-label>Área</mat-label>
+            <input
+              matInput
+              [value]="area()"
+              (input)="area.set($any($event.target).value)"
+              placeholder="Private Banking"
+              maxlength="150"
+            />
+          </mat-form-field>
+
+          <mat-form-field class="curto">
+            <mat-label>Tipo</mat-label>
+            <mat-select [value]="tipo()" (valueChange)="tipo.set($event)">
+              @for (opcao of tipos; track opcao) {
+                <mat-option [value]="opcao">{{ opcao }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <mat-form-field class="largo">
+          <mat-label>Descrição</mat-label>
+          <textarea
+            matInput
+            rows="2"
+            [value]="descricao()"
+            (input)="descricao.set($any($event.target).value)"
+            maxlength="500"
+          ></textarea>
+        </mat-form-field>
+
+        <div class="aviso atencao">
+          <span>i</span>
+          <span>
+            A carga da base já cria comitês automaticamente a partir do
+            <span class="mono">GRUPO_RANKING</span>. Monte um aqui quando precisar de um recorte
+            diferente do que veio da planilha.
+          </span>
+        </div>
+
+        <div class="acoes">
+          <button mat-flat-button color="primary" matStepperNext [disabled]="!dadosValidos()">
+            Avançar
+          </button>
+          <button mat-button (click)="cancelar()">Cancelar</button>
+        </div>
+      </div>
+    </mat-step>
+
+    <!-- ================= PASSO 2 ================= -->
+    <mat-step [completed]="escolhidos().length > 0" label="Participantes">
+      <div class="passo">
+        <!-- Pool do grupo, recalculado a cada inclusão -->
+        <div class="bloco">
+          <div class="bloco-titulo">
+            <span>Pool do grupo</span>
+            <small>{{ percentualPool() * 100 }}% do Σ VLR_TEÓRICO · recalculado a cada inclusão</small>
+          </div>
+          <div class="kpis">
+            <div class="kpi">
+              <span class="rotulo">Participantes</span>
+              <span class="valor">{{ escolhidos().length }}</span>
+            </div>
+            <div class="kpi">
+              <span class="rotulo">Σ VLR teórico</span>
+              <span class="valor">{{ somaTeorica() | moeda }}</span>
+            </div>
+            <div class="kpi">
+              <span class="rotulo">Pool do comitê</span>
+              <span class="valor positivo">{{ poolProjetado() | moeda }}</span>
+            </div>
+          </div>
+          <p class="sub nota">
+            Projeção da tela. O pool oficial é o que a API devolve depois que o comitê existe —
+            é ele que limita cada lançamento.
+          </p>
+        </div>
+
+        <div class="listas">
+          <!-- Disponíveis -->
+          <div class="lista">
+            <div class="topo-lista">
+              <span>Elegíveis {{ editando() ? '' : 'sem comitê' }}</span>
+              <span class="mono">{{ disponiveis().length }}</span>
+            </div>
+
+            <mat-form-field class="busca" subscriptSizing="dynamic">
+              <mat-label>Buscar</mat-label>
+              <input
+                matInput
+                type="search"
+                [value]="busca()"
+                (input)="pesquisar($any($event.target).value)"
+                placeholder="Nome, EMPLID, área ou nível"
+              />
+            </mat-form-field>
+
+            <div class="corpo-lista">
+              @if (buscando()) {
+                <div class="centro"><mat-spinner diameter="26" /></div>
+              } @else {
+                @for (pessoa of disponiveis(); track pessoa.id) {
+                  <button type="button" class="pessoa" (click)="incluir(pessoa)">
+                    <mat-icon class="acao incluir">add</mat-icon>
+                    <span class="identidade">
+                      <b>{{ pessoa.nome }}</b>
+                      <span class="detalhe">
+                        {{ pessoa.emplid }} · {{ pessoa.xlatlongname ?? 'Sem nível' }} ·
+                        {{ pessoa.area ?? 'Sem área' }}
+                      </span>
+                    </span>
+                    <span class="teorico">{{ pessoa.vlrTeorico | moeda }}</span>
+                  </button>
+                } @empty {
+                  <div class="sub vazio">
+                    Ninguém encontrado. Ajuste a busca ou carregue a base do ciclo.
+                  </div>
+                }
+              }
+            </div>
+
+            @if (disponiveis().length) {
+              <button mat-button class="acao-lista" (click)="incluirTodos()">
+                Incluir todos os {{ disponiveis().length }}
+              </button>
+            }
+          </div>
+
+          <!-- Escolhidos -->
+          <div class="lista">
+            <div class="topo-lista">
+              <span>No comitê {{ codigo() }} {{ nome() ? '· ' + nome() : '' }}</span>
+              <span class="mono">{{ escolhidos().length }}</span>
+            </div>
+
+            <div class="corpo-lista alto">
+              @for (pessoa of escolhidos(); track pessoa.id) {
+                <button type="button" class="pessoa" (click)="remover(pessoa.id)">
+                  <mat-icon class="acao remover">remove</mat-icon>
+                  <span class="identidade">
+                    <b>{{ pessoa.nome }}</b>
+                    <span class="detalhe">
+                      {{ pessoa.emplid }} · {{ pessoa.xlatlongname ?? 'Sem nível' }} ·
+                      {{ pessoa.modeloAvaliacao ?? 'Sem modelo' }}
+                    </span>
+                  </span>
+                  <span class="teorico">{{ pessoa.vlrTeorico | moeda }}</span>
+                </button>
+              } @empty {
+                <div class="sub vazio">
+                  Clique num nome à esquerda para incluir no comitê.
+                </div>
+              }
+            </div>
+
+            @if (escolhidos().length) {
+              <button mat-button class="acao-lista" (click)="limparEscolhidos()">Limpar lista</button>
+            }
+          </div>
+        </div>
+
+        @if (escolhidos().length) {
+          <div class="aviso ok">
+            <span>✓</span>
+            <span>
+              <b>{{ escolhidos().length }} participante{{ escolhidos().length > 1 ? 's' : '' }}</b> ·
+              a consultoria terá <b>{{ poolProjetado() | moeda }}</b> para distribuir neste grupo.
+            </span>
+          </div>
+        } @else {
+          <div class="aviso atencao">
+            <span>○</span>
+            <span>Selecione ao menos um participante para o comitê ter pool.</span>
+          </div>
+        }
+
+        <div class="acoes">
+          <button mat-button matStepperPrevious>Voltar</button>
+          <button mat-flat-button color="primary" matStepperNext [disabled]="!escolhidos().length">
+            Avançar para campos e colunas
+          </button>
+        </div>
+      </div>
+    </mat-step>
+
+    <!-- ================= PASSO 3 ================= -->
+    <mat-step label="Campos e colunas">
+      <div class="passo">
+        @if (layout(); as configuracao) {
+          <app-personalizar-comite
+            [comiteId]="comiteId() ?? ''"
+            [layout]="configuracao"
+            [editavel]="editando()"
+            (salvo)="aoSalvarLayout($event)"
+          />
+        } @else {
+          <div class="aviso atencao">
+            <span>i</span>
+            <span>
+              O layout é salvo depois que o comitê existe. Crie o comitê no último passo e volte
+              aqui — ou use <b>Personalizar</b> na tela do comitê, que é o mesmo painel.
+            </span>
+          </div>
+        }
+
+        <div class="acoes">
+          <button mat-button matStepperPrevious>Voltar</button>
+          <button mat-flat-button color="primary" matStepperNext>Avançar</button>
+        </div>
+      </div>
+    </mat-step>
+
+    <!-- ================= PASSO 4 ================= -->
+    <mat-step label="Responsáveis">
+      <div class="passo">
+        <p class="sub">
+          Só as consultoras cadastradas enxergam este comitê. A restrição é aplicada no banco —
+          um comitê fora do escopo nem aparece na lista delas.
+        </p>
+
+        <div class="linha-campos">
+          <mat-form-field class="longo">
+            <mat-label>Consultoria responsável</mat-label>
+            <mat-select
+              multiple
+              [value]="consultoriaIds()"
+              (valueChange)="consultoriaIds.set($event)"
+            >
+              @for (pessoa of consultoras(); track pessoa.id) {
+                <mat-option [value]="pessoa.id">{{ pessoa.nome }} — {{ pessoa.email }}</mat-option>
+              } @empty {
+                <mat-option disabled>Nenhum usuário com perfil CONSULTORIA</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field class="longo">
+            <mat-label>Backup / Atendimento</mat-label>
+            <mat-select multiple [value]="backupIds()" (valueChange)="backupIds.set($event)">
+              @for (pessoa of apoios(); track pessoa.id) {
+                <mat-option [value]="pessoa.id">
+                  {{ pessoa.nome }} — {{ pessoa.perfil }}
+                </mat-option>
+              } @empty {
+                <mat-option disabled>Nenhum usuário disponível</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        @if (erro(); as texto) {
+          <div class="aviso bloqueio"><span>✕</span><span>{{ texto }}</span></div>
+        }
+
+        <div class="resumo-final bloco">
+          <div class="bloco-titulo"><span>Resumo</span></div>
+          <div class="kpis">
+            <div class="kpi">
+              <span class="rotulo">Comitê</span>
+              <span class="valor pequeno">{{ codigo() }} · {{ nome() }}</span>
+            </div>
+            <div class="kpi">
+              <span class="rotulo">Participantes</span>
+              <span class="valor">{{ escolhidos().length }}</span>
+            </div>
+            <div class="kpi">
+              <span class="rotulo">Pool projetado</span>
+              <span class="valor positivo">{{ poolProjetado() | moeda }}</span>
+            </div>
+            <div class="kpi">
+              <span class="rotulo">Consultoras</span>
+              <span class="valor">{{ consultoriaIds().length }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="acoes">
+          <button mat-button matStepperPrevious>Voltar</button>
+          <button
+            mat-flat-button
+            color="primary"
+            [disabled]="!dadosValidos() || salvando()"
+            (click)="salvar()"
+          >
+            {{ editando() ? 'Salvar comitê' : 'Criar comitê' }}
+          </button>
+          <button mat-button (click)="cancelar()">Cancelar</button>
+        </div>
+      </div>
+    </mat-step>
+  </mat-stepper>
+</div>

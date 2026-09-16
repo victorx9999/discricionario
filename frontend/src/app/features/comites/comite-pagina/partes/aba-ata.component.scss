@@ -1,0 +1,130 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.linha-campos {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  .curto { width: 150px; }
+}
+
+.secao-presentes {
+  margin-top: 4px;
+}
+
+.cabecalho-presentes {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.presente {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  background: var(--app-surface);
+  margin-bottom: 6px;
+
+  .nome { flex: 1; min-width: 0; }
+  .papel { width: 150px; flex: none; }
+}
+
+.vazio-presentes {
+  padding: 10px 0;
+  font-size: 12.5px;
+}
+
+.seletor {
+  border: 1px solid var(--app-border-forte);
+  border-radius: 9px;
+  padding: 12px;
+  background: var(--app-surface);
+  margin-top: 8px;
+}
+
+.busca {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.tabela-pessoas {
+  max-height: 230px;
+  overflow: auto;
+  border: none;
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 12.5px;
+  }
+
+  th,
+  td {
+    padding: 6px 10px;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--app-border);
+  }
+
+  th {
+    position: sticky;
+    top: 0;
+    background: var(--app-surface-2);
+    font-family: var(--app-cond);
+    font-weight: 700;
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--app-ink-2);
+  }
+
+  tbody tr {
+    cursor: pointer;
+
+    &:hover { background: var(--app-surface-2); }
+    &.marcada { background: var(--app-brand-soft); }
+    &:focus-visible { outline: 2px solid var(--serie-rv); outline-offset: -2px; }
+  }
+
+  .check {
+    width: 34px;
+
+    .mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: var(--app-muted);
+    }
+  }
+
+  tbody tr.marcada .check .mat-icon { color: var(--app-brand); }
+}
+
+.acoes-seletor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.observacoes {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.acoes {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
