@@ -318,10 +318,10 @@
 
     @if (carregandoHistorico()) {
       <mat-progress-bar mode="indeterminate" />
-    } @else if (erroHistorico(); as mensagem) {
+    } @else if (erroHistorico()) {
       <div class="aviso bloqueio">
         <mat-icon>error_outline</mat-icon>
-        <span>{{ mensagem }}</span>
+        <span>{{ erroHistorico() }}</span>
       </div>
     } @else if (historico().length === 0) {
       <p class="sub">Nenhuma carga registrada neste ciclo ainda.</p>
@@ -379,30 +379,30 @@
 
       @if (carregandoErros()) {
         <mat-progress-bar mode="indeterminate" />
-      } @else if (erroErros(); as mensagem) {
+      } @else if (erroErros()) {
         <div class="aviso bloqueio">
           <mat-icon>error_outline</mat-icon>
-          <span>{{ mensagem }}</span>
+          <span>{{ erroErros() }}</span>
         </div>
-      } @else if (errosImportacao(); as detalhe) {
+      } @else if (errosImportacao()) {
         <div class="bloco-titulo sub-titulo">
           <span>Erros da carga selecionada</span>
-          <small class="mono">{{ detalhe.importacaoId }}</small>
+          <small class="mono">{{ errosImportacao()!.importacaoId }}</small>
         </div>
-        @if (detalhe.linhas.length > 0) {
+        @if (errosImportacao()!.linhas.length > 0) {
           <div class="rolar">
             <table class="tabela-bruta">
               <thead>
                 <tr>
-                  @for (coluna of detalhe.colunas; track coluna) {
+                  @for (coluna of errosImportacao()!.colunas; track coluna) {
                     <th>{{ coluna }}</th>
                   }
                 </tr>
               </thead>
               <tbody>
-                @for (linha of detalhe.linhas; track $index) {
+                @for (linha of errosImportacao()!.linhas; track $index) {
                   <tr>
-                    @for (coluna of detalhe.colunas; track coluna) {
+                    @for (coluna of errosImportacao()!.colunas; track coluna) {
                       <td>{{ valor(linha, coluna) }}</td>
                     }
                   </tr>
@@ -426,10 +426,10 @@
 
     @if (carregandoLayouts()) {
       <mat-progress-bar mode="indeterminate" />
-    } @else if (erroLayouts(); as mensagem) {
+    } @else if (erroLayouts()) {
       <div class="aviso bloqueio">
         <mat-icon>error_outline</mat-icon>
-        <span>{{ mensagem }}</span>
+        <span>{{ erroLayouts() }}</span>
       </div>
     } @else {
       @for (layout of layouts(); track layout.tipo) {

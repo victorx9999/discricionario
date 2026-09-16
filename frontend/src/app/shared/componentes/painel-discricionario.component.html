@@ -73,13 +73,13 @@
         <span>!</span>
         <span>Ciclo fechado ou comitê concluído: os lançamentos estão travados.</span>
       </div>
-    } @else if (erroApi(); as erro) {
+    } @else if (erroApi()) {
       <div class="aviso bloqueio">
         <span>✕</span>
         <span>
           {{ mensagemErro() }}
-          @if (erro.codigo) {
-            <span class="mono codigo">{{ erro.statusCode }} {{ erro.codigo }}</span>
+          @if (erroApi()?.codigo) {
+            <span class="mono codigo">{{ erroApi()?.statusCode }} {{ erroApi()?.codigo }}</span>
           }
         </span>
       </div>

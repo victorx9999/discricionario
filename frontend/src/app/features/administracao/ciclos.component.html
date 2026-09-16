@@ -23,10 +23,10 @@
 
     @if (carregando()) {
       <mat-progress-bar mode="indeterminate" />
-    } @else if (erro(); as mensagem) {
+    } @else if (erro()) {
       <div class="aviso bloqueio">
         <mat-icon>error_outline</mat-icon>
-        <span>{{ mensagem }}</span>
+        <span>{{ erro() }}</span>
       </div>
     } @else if (ciclos().length === 0) {
       <p class="sub">Nenhum ciclo cadastrado. Abra o primeiro ano no formulário abaixo.</p>

@@ -1,16 +1,16 @@
 <div class="pagina">
   @if (carregando()) {
     <div class="centro"><mat-spinner diameter="36" /></div>
-  } @else if (erro(); as texto) {
-    <div class="aviso bloqueio"><span>✕</span><span>{{ texto }}</span></div>
-  } @else if (comite(); as dados) {
+  } @else if (erro()) {
+    <div class="aviso bloqueio"><span>✕</span><span>{{ erro() }}</span></div>
+  } @else if (comite()) {
     <header class="cabecalho">
       <div>
-        <h1>{{ dados.codigo }} · {{ dados.nome }}</h1>
+        <h1>{{ comite()!.codigo }} · {{ comite()!.nome }}</h1>
         <div class="sub">
-          @if (dados.area) { {{ dados.area }} · }
+          @if (comite()!.area) { {{ comite()!.area }} · }
           {{ resumo()?.totalParticipantes ?? 0 }} participantes ·
-          @if (dados.status === 'CONCLUIDO') {
+          @if (comite()!.status === 'CONCLUIDO') {
             <span class="chip chip-ok">Concluído</span>
           } @else {
             <span class="chip chip-atencao">Em andamento</span>
@@ -253,7 +253,7 @@
         <div class="conteudo-aba">
           <app-aba-ata
             [comiteId]="comiteId()"
-            [comite]="dados"
+            [comite]="comite()!"
             [somenteLeitura]="ciclos.somenteLeitura()"
             (comiteAtualizado)="aoMudarComite()"
           />

@@ -236,7 +236,7 @@ docker compose restart backend
 | Frontend | http://localhost:4200 | veja os usuários do seed abaixo |
 | API | http://localhost:3000/api/v1 | JWT |
 | Swagger | http://localhost:3000/api/v1/docs | — |
-| pgAdmin | http://localhost:5050 | `admin@discricionario.local` / `admin` |
+| pgAdmin | http://localhost:5050 | `pgadmin@example.com` / `admin` |
 | PostgreSQL | `localhost:5432` | `postgres` / `postgres` |
 
 ### Usuários do seed
@@ -339,7 +339,7 @@ desenvolvimento não é tocada.
 | `UPLOAD_MAX_FILE_SIZE_MB` | `50` | Tamanho máximo do arquivo |
 | `POOL_PERCENTUAL` | `0.01` | Premissa **padrão de ciclos novos** (cada ciclo guarda a sua) |
 | `LIMITE_DISCRICIONARIO` | `0.15` | Idem, para o limite do FD |
-| `PGADMIN_EMAIL` / `PGADMIN_PASSWORD` / `PGADMIN_PORT` | `admin@...` / `admin` / `5050` | pgAdmin |
+| `PGADMIN_EMAIL` / `PGADMIN_PASSWORD` / `PGADMIN_PORT` | `pgadmin@example.com` / `admin` / `5050` | pgAdmin |
 | `SEED_SENHA_PADRAO` / `SEED_QTD_PARTICIPANTES` / `SEED_ANOS` | `Senha@123` / `1200` / `2025,2026` | Seed |
 
 As premissas que valem em produção são as da tabela `ciclos`, editáveis por

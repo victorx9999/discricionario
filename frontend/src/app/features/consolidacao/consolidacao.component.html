@@ -20,10 +20,10 @@
 
           @if (carregandoComites()) {
             <mat-progress-bar mode="indeterminate" />
-          } @else if (erroComites(); as mensagem) {
+          } @else if (erroComites()) {
             <div class="aviso bloqueio">
               <mat-icon>error_outline</mat-icon>
-              <span>{{ mensagem }}</span>
+              <span>{{ erroComites() }}</span>
             </div>
           } @else if (listaComites().length === 0) {
             <p class="sub">Nenhum comitê montado neste ciclo.</p>
@@ -56,13 +56,13 @@
 
         @if (carregandoComparativo()) {
           <mat-progress-bar mode="indeterminate" />
-        } @else if (erroComparativo(); as mensagem) {
+        } @else if (erroComparativo()) {
           <div class="aviso bloqueio">
             <mat-icon>error_outline</mat-icon>
-            <span>{{ mensagem }}</span>
+            <span>{{ erroComparativo() }}</span>
           </div>
-        } @else if (dadoComparativo(); as dado) {
-          @if (vazio(dado)) {
+        } @else if (dadoComparativo()) {
+          @if (vazio(dadoComparativo()!)) {
             <p class="sub">A API respondeu sem conteúdo para os comitês selecionados.</p>
           } @else {
             <div class="bloco">
@@ -134,13 +134,13 @@
 
           @if (carregandoNominais()) {
             <mat-progress-bar mode="indeterminate" />
-          } @else if (erroNominais(); as mensagem) {
+          } @else if (erroNominais()) {
             <div class="aviso bloqueio">
               <mat-icon>error_outline</mat-icon>
-              <span>{{ mensagem }}</span>
+              <span>{{ erroNominais() }}</span>
             </div>
-          } @else if (dadoNominais(); as dado) {
-            @if (vazio(dado)) {
+          } @else if (dadoNominais()) {
+            @if (vazio(dadoNominais()!)) {
               <p class="sub">A API respondeu sem conteúdo.</p>
             } @else {
               @if (resumoNominais().length > 0) {
@@ -211,13 +211,13 @@
 
           @if (carregandoGrupos()) {
             <mat-progress-bar mode="indeterminate" />
-          } @else if (erroGrupos(); as mensagem) {
+          } @else if (erroGrupos()) {
             <div class="aviso bloqueio">
               <mat-icon>error_outline</mat-icon>
-              <span>{{ mensagem }}</span>
+              <span>{{ erroGrupos() }}</span>
             </div>
-          } @else if (dadoGrupos(); as dado) {
-            @if (vazio(dado)) {
+          } @else if (dadoGrupos()) {
+            @if (vazio(dadoGrupos()!)) {
               <p class="sub">A API respondeu sem conteúdo.</p>
             } @else {
               @if (resumoGrupos().length > 0) {

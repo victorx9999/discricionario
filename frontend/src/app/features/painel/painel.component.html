@@ -12,10 +12,10 @@
       <mat-spinner [diameter]="36" />
       <span class="sub">Carregando o painel…</span>
     </div>
-  } @else if (erro(); as mensagem) {
+  } @else if (erro()) {
     <p class="aviso bloqueio">
       <mat-icon>error_outline</mat-icon>
-      <span>{{ mensagem }}</span>
+      <span>{{ erro() }}</span>
     </p>
   } @else {
     @if (kpis(); as k) {

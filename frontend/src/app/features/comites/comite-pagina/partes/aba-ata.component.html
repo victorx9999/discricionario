@@ -192,13 +192,13 @@
       preciso reabrir.
     </span>
   </div>
-} @else if (pendencias(); as p) {
-  @if (p.total > 0) {
+} @else if (pendencias()) {
+  @if (pendencias()!.total > 0) {
     <div class="aviso atencao">
       <span>!</span>
       <span>
-        Faltam <b>{{ p.total }}</b> pendência{{ p.total === 1 ? '' : 's' }} para concluir:
-        @for (item of p.itens; track item.participanteId) {
+        Faltam <b>{{ pendencias()!.total }}</b> pendência{{ pendencias()!.total === 1 ? '' : 's' }} para concluir:
+        @for (item of pendencias()!.itens; track item.participanteId) {
           <br /><b>{{ item.nome }}</b> — {{ item.motivo }}
         }
       </span>
