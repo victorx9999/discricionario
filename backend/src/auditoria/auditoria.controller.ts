@@ -40,14 +40,15 @@ export class AuditoriaController {
     @UsuarioAtual() usuario: UsuarioAutenticado,
     @ContextoRequisicao() contexto: ContextoAuditoria,
   ) {
-    const acao = resolverAcaoFrontend(dto.action);
+    const acao = resolverAcaoFrontend(dto.acao);
 
     const log = await this.auditoriaService.registrar({
       acao,
-      entidade: dto.entity,
-      entidadeId: dto.entityId ?? null,
+      entidade: dto.entidade,
+      entidadeId: dto.entidadeId ?? null,
+      comiteId: dto.comiteId ?? null,
       usuario: { id: usuario.id, email: usuario.email },
-      detalhes: { ...(dto.details ?? {}), acaoOriginal: dto.action },
+      detalhes: { ...(dto.detalhes ?? {}), acaoOriginal: dto.acao },
       origem: OrigemAuditoria.FRONTEND,
       contexto,
     });

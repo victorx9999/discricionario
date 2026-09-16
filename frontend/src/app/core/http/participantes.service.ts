@@ -37,7 +37,7 @@ export class ParticipantesService {
 
   /** Busca usada ao montar o comitê: nome, EMPLID, área ou nível. */
   pesquisar(params?: Params): Observable<ResultadoPaginado<ParticipanteLinha>> {
-    return this.api.get<ResultadoPaginado<ParticipanteLinha>>('participantes/pesquisa', params);
+    return this.api.get<ResultadoPaginado<ParticipanteLinha>>('participantes', params);
   }
 
   detalhar(id: string): Observable<ParticipanteLinha> {

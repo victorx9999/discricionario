@@ -15,30 +15,36 @@ import { AcaoAuditoria } from '../../common/enums';
  * continua sendo a gerada pelo backend nos próprios services.
  */
 export class AuditoriaFrontendDto {
-  @ApiProperty({ example: 'UPDATE_DISCRETIONARY' })
-  @IsString({ message: 'action é obrigatória' })
+  @ApiProperty({ example: 'COMITE_ABERTO' })
+  @IsString({ message: 'acao é obrigatória' })
   @MaxLength(60)
-  action: string;
+  acao: string;
 
-  @ApiProperty({ example: 'PARTICIPANT' })
-  @IsString({ message: 'entity é obrigatória' })
+  @ApiProperty({ example: 'COMITE' })
+  @IsString({ message: 'entidade é obrigatória' })
   @MaxLength(60)
-  entity: string;
+  entidade: string;
 
   @ApiPropertyOptional({ example: 'e3f1c0d2-...' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
-  entityId?: string;
+  entidadeId?: string;
+
+  @ApiPropertyOptional({ example: 'e3f1c0d2-...' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  comiteId?: string;
 
   @ApiPropertyOptional({ type: Object })
   @IsOptional()
   @IsObject()
-  details?: Record<string, unknown>;
+  detalhes?: Record<string, unknown>;
 }
 
 /** Converte o rótulo do frontend em uma ação conhecida do backend. */
-export function resolverAcaoFrontend(action: string): AcaoAuditoria {
+export function resolverAcaoFrontend(acao: string): AcaoAuditoria {
   const conhecidas = Object.values(AcaoAuditoria) as string[];
-  return conhecidas.includes(action) ? (action as AcaoAuditoria) : AcaoAuditoria.ACAO_FRONTEND;
+  return conhecidas.includes(acao) ? (acao as AcaoAuditoria) : AcaoAuditoria.ACAO_FRONTEND;
 }
