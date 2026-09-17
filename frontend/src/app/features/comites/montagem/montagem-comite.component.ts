@@ -19,7 +19,6 @@ import {
   LayoutComite,
   mensagemDoErro,
   ParticipanteLinha,
-  TipoComite,
   Usuario,
 } from '../../../core/models/api.models';
 import { PersonalizarComiteComponent } from '../../../shared/componentes/personalizar-comite.component';
@@ -61,8 +60,6 @@ export class MontagemComiteComponent implements OnInit {
   private readonly snackbar = inject(MatSnackBar);
   readonly ciclos = inject(CicloStore);
 
-  readonly tipos: TipoComite[] = ['INSTITUCIONAL', 'COMUNIDADE', 'MISTO'];
-
   readonly comiteId = signal<string | null>(null);
   readonly editando = computed(() => this.comiteId() !== null);
 
@@ -70,7 +67,6 @@ export class MontagemComiteComponent implements OnInit {
   readonly codigo = signal('');
   readonly nome = signal('');
   readonly area = signal('');
-  readonly tipo = signal<TipoComite>('INSTITUCIONAL');
   readonly descricao = signal('');
 
   // Passo 2
@@ -177,7 +173,6 @@ export class MontagemComiteComponent implements OnInit {
     this.codigo.set(comite.codigo);
     this.nome.set(comite.nome);
     this.area.set(comite.area ?? '');
-    this.tipo.set(comite.tipo);
     this.descricao.set(comite.descricao ?? '');
 
     const responsaveis = comite.responsaveis ?? [];
@@ -222,7 +217,6 @@ export class MontagemComiteComponent implements OnInit {
       codigo: this.codigo().trim(),
       nome: this.nome().trim(),
       area: this.area().trim() || undefined,
-      tipo: this.tipo(),
       descricao: this.descricao().trim() || undefined,
       consultoriaIds: this.consultoriaIds(),
       backupIds: this.backupIds(),

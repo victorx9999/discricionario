@@ -96,7 +96,7 @@ export interface PremissasCiclo {
 // ---------------------------------------------------------------------------
 
 export type StatusComite = 'EM_ANDAMENTO' | 'CONCLUIDO';
-export type TipoComite = 'INSTITUCIONAL' | 'COMUNIDADE' | 'MISTO';
+export type TipoComite = 'Institucional' | 'Comunidade' | 'Misto';
 
 export interface Comite {
   id: string;
@@ -126,7 +126,6 @@ export interface CriarComite {
   nome: string;
   ciclo?: number;
   area?: string;
-  tipo?: TipoComite;
   descricao?: string;
   consultoriaIds?: string[];
   backupIds?: string[];
@@ -371,9 +370,24 @@ export interface ResumoComite {
   precisaRever: boolean;
 }
 
+export interface ParticipantePendente {
+  id: string;
+  emplid: string;
+  nome: string;
+  fd: number;
+  faltaMotivador: boolean;
+  faltaJustificativa: boolean;
+}
+
 export interface Pendencias {
-  total: number;
-  itens: Array<{ participanteId: string; nome: string; motivo: string }>;
+  comiteId: string;
+  /** Mensagens que impedem a conclusão do comitê (ATA incompleta, discricionário sem motivador...). */
+  bloqueiam: string[];
+  /** Avisos que não bloqueiam, mas ficam registrados (pool excedido, nível a rever). */
+  alertam: string[];
+  poolExcedido: boolean;
+  pool: ResultadoPool;
+  participantesPendentes: ParticipantePendente[];
   podeConcluir: boolean;
 }
 
@@ -429,13 +443,17 @@ export interface ErroLinha {
 
 export interface PreviaUpload {
   delimitador: string;
-  totalLinhas: number;
+  totalRegistros: number;
+  registrosValidos: number;
+  registrosComErro: number;
+  novos: number;
+  atualizados: number;
   colunasReconhecidas: string[];
   colunasIgnoradas: string[];
   colunasObrigatoriasAusentes: string[];
   amostra: Array<Record<string, unknown>>;
   erros: ErroLinha[];
-  impacto?: Record<string, unknown>;
+  impactoDoReinicio?: Record<string, number> | null;
 }
 
 export interface Importacao {

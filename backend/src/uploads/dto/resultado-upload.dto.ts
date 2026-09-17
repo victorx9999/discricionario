@@ -17,6 +17,7 @@ export class PreviaUploadDto {
   @ApiProperty({ enum: TipoBase }) tipoBase: TipoBase;
   @ApiProperty({ enum: ModoCarga }) modo: ModoCarga;
   @ApiProperty() nomeArquivo: string;
+  @ApiProperty({ description: 'Delimitador detectado no arquivo' }) delimitador: string;
   @ApiProperty({ type: [String] }) colunasReconhecidas: string[];
   @ApiProperty({ type: [String] }) colunasIgnoradas: string[];
   @ApiProperty({ type: [String] }) colunasObrigatoriasAusentes: string[];
@@ -26,6 +27,8 @@ export class PreviaUploadDto {
   @ApiProperty() novos: number;
   @ApiProperty() atualizados: number;
   @ApiProperty({ type: [ErroUploadDto] }) erros: ErroUploadDto[];
+  @ApiProperty({ type: [Object], description: 'Primeiras linhas já convertidas, para conferência visual' })
+  amostra: Array<Record<string, unknown>>;
   @ApiPropertyOptional({ description: 'O que a carga COMPLETA vai apagar neste ciclo' })
   impactoDoReinicio?: Record<string, number> | null;
 }

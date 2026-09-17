@@ -17,18 +17,12 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { Params, filtro } from '../../../core/http/api.service';
 import { ComitesService } from '../../../core/http/comites.service';
 import { erroApiDe } from '../../../core/http/interceptors';
-import { mensagemDoErro, Comite, ResultadoPaginado, StatusComite, TipoComite } from '../../../core/models/api.models';
+import { mensagemDoErro, Comite, ResultadoPaginado, StatusComite } from '../../../core/models/api.models';
 
 interface OpcaoStatus {
   valor: StatusComite | '';
   rotulo: string;
 }
-
-const ROTULOS_TIPO: Record<TipoComite, string> = {
-  INSTITUCIONAL: 'Institucional',
-  COMUNIDADE: 'Comunidade',
-  MISTO: 'Misto',
-};
 
 const PAGINA_VAZIA: ResultadoPaginado<Comite> = {
   data: [],
@@ -186,10 +180,6 @@ export class ListaComitesComponent implements OnInit {
 
   montar(): void {
     void this.router.navigate(['/comites/novo']);
-  }
-
-  rotuloTipo(tipo: TipoComite): string {
-    return ROTULOS_TIPO[tipo];
   }
 
   rotuloStatus(status: StatusComite): string {

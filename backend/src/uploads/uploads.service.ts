@@ -91,6 +91,7 @@ export class UploadsService {
       tipoBase: dto.tipoBase,
       modo,
       nomeArquivo: arquivo.originalname,
+      delimitador: leitura.delimitador,
       colunasReconhecidas: definicoes
         .filter((definicao) => !leitura.colunasIgnoradas.includes(definicao.rotulo))
         .map((definicao) => definicao.rotulo),
@@ -102,6 +103,7 @@ export class UploadsService {
       novos: leitura.registros.length - existentes,
       atualizados: modo === ModoCarga.COMPLETA ? 0 : existentes,
       erros: leitura.erros.slice(0, MAX_ERROS_RETORNADOS),
+      amostra: leitura.registros.slice(0, 20).map(({ dados }) => dados),
       impactoDoReinicio:
         modo === ModoCarga.COMPLETA && dto.tipoBase === TipoBase.PRINCIPAL
           ? await this.contarImpactoDoReinicio(ciclo.id)

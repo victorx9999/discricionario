@@ -22,6 +22,8 @@ export interface ResultadoLeituraCsv<T = Record<string, unknown>> {
   totalLinhas: number;
   /** Cabeçalhos presentes no arquivo que não estão mapeados. */
   colunasIgnoradas: string[];
+  /** Delimitador detectado na primeira linha (";", ",", tab ou "|"). */
+  delimitador: string;
 }
 
 const DELIMITADORES = [';', ',', '\t', '|'];
@@ -69,10 +71,12 @@ export class CsvService {
       throw new ExcecaoUpload('O arquivo enviado está vazio');
     }
 
+    const delimitador = this.detectarDelimitador(conteudo);
+
     let linhas: string[][];
     try {
       linhas = parse(conteudo, {
-        delimiter: this.detectarDelimitador(conteudo),
+        delimiter: delimitador,
         skip_empty_lines: true,
         relax_column_count: true,
         relax_quotes: true,
@@ -118,6 +122,7 @@ export class CsvService {
       erros,
       totalLinhas: linhas.length - 1,
       colunasIgnoradas,
+      delimitador,
     };
   }
 

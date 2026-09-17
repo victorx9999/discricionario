@@ -3,7 +3,6 @@ import { Transform } from 'class-transformer';
 import {
   ArrayUnique,
   IsArray,
-  IsEnum,
   IsInt,
   IsOptional,
   IsString,
@@ -13,7 +12,6 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
-import { TipoComite } from '../../common/enums';
 
 export class CriarComiteDto {
   @ApiProperty({ example: '100702', description: 'Código do grupo' })
@@ -43,11 +41,6 @@ export class CriarComiteDto {
   @IsString()
   @MaxLength(150)
   area?: string;
-
-  @ApiPropertyOptional({ enum: TipoComite, default: TipoComite.MISTO })
-  @IsOptional()
-  @IsEnum(TipoComite)
-  tipo?: TipoComite;
 
   @ApiPropertyOptional()
   @IsOptional()
