@@ -108,6 +108,8 @@ export interface Comite {
   tipo: TipoComite;
   status: StatusComite;
   descricao?: string | null;
+  /** Decidido por quem monta o comitê: se a consultoria vê os gráficos de RV/Total Cash de cada participante. */
+  exibirGraficos: boolean;
   totalParticipantes?: number;
   responsaveis?: ResponsavelComite[];
   temAta?: boolean;
@@ -127,6 +129,7 @@ export interface CriarComite {
   ciclo?: number;
   area?: string;
   descricao?: string;
+  exibirGraficos?: boolean;
   consultoriaIds?: string[];
   backupIds?: string[];
   participanteIds?: string[];
@@ -517,6 +520,57 @@ export interface VisaoGeral {
     percentualUtilizado: number;
     excedido: boolean;
     precisaRever: boolean;
+  }>;
+}
+
+export interface ComparativoComites {
+  ciclo: number;
+  comitesSelecionados: number;
+  consolidado: {
+    participantes: number;
+    vlrTeoricoTotal: number;
+    poolDisponivel: number;
+    poolConsumido: number;
+    saldo: number;
+    percentualUtilizado: number;
+  };
+  comites: Array<{
+    comiteId: string;
+    grupoRanking: string | null;
+    status: StatusComite;
+    participantes: number;
+    analisados: number;
+    poolDisponivel: number;
+    poolConsumido: number;
+    saldo: number;
+    percentualUtilizado: number;
+    excedido: boolean;
+    performancePonderada: {
+      antes: number | null;
+      depois: number | null;
+      variacao: number | null;
+      modelo: string;
+    };
+  }>;
+  discricionarios: {
+    positivos: number;
+    negativos: number;
+  };
+  participantesComDiscricionario: Array<{
+    participanteId: string;
+    emplid: string;
+    nome: string;
+    nivel: string | null;
+    modeloAvaliacao: string | null;
+    comiteId: string | null;
+    comite: string | null;
+    fd: number;
+    fdPp: string;
+    motivo: string | null;
+    justificativa: string | null;
+    impacto: number;
+    foraDoLimite: boolean;
+    pendente: boolean;
   }>;
 }
 

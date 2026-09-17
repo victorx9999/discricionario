@@ -36,7 +36,7 @@ const CAMPOS_ORDENACAO: Record<string, string> = {
   atualizadoEm: 'comite.atualizadoEm',
 };
 
-const CAMPOS_AUDITADOS = ['nome', 'area', 'tipo', 'descricao'];
+const CAMPOS_AUDITADOS = ['nome', 'area', 'tipo', 'descricao', 'exibirGraficos'];
 
 @Injectable()
 export class ComitesService {
@@ -183,6 +183,7 @@ export class ComitesService {
           // dos participantes vinculados — nunca é escolhido manualmente.
           tipo: TipoComite.MISTO,
           descricao: dto.descricao ?? null,
+          exibirGraficos: dto.exibirGraficos ?? true,
           status: StatusComite.EM_ANDAMENTO,
           criadoPorId: usuario.id,
         }),
@@ -240,6 +241,7 @@ export class ComitesService {
       area: comite.area,
       tipo: comite.tipo,
       descricao: comite.descricao,
+      exibirGraficos: comite.exibirGraficos,
     };
 
     await this.dataSource.transaction(async (manager) => {
@@ -249,6 +251,7 @@ export class ComitesService {
       }
       if (dto.area !== undefined) comite.area = dto.area;
       if (dto.descricao !== undefined) comite.descricao = dto.descricao;
+      if (dto.exibirGraficos !== undefined) comite.exibirGraficos = dto.exibirGraficos;
 
       await manager.save(Comite, comite);
 
@@ -281,7 +284,13 @@ export class ComitesService {
         contexto,
       },
       anterior,
-      { nome: comite.nome, area: comite.area, tipo: comite.tipo, descricao: comite.descricao },
+      {
+        nome: comite.nome,
+        area: comite.area,
+        tipo: comite.tipo,
+        descricao: comite.descricao,
+        exibirGraficos: comite.exibirGraficos,
+      },
       CAMPOS_AUDITADOS,
     );
 

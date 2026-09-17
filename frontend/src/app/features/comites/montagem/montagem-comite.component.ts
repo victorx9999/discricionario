@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -42,6 +43,7 @@ import { MoedaPipe } from '../../../shared/pipes/formatos.pipe';
     MatInputModule,
     MatSelectModule,
     MatButtonModule,
+    MatCheckboxModule,
     MatIconModule,
     MatProgressSpinnerModule,
     PersonalizarComiteComponent,
@@ -68,6 +70,7 @@ export class MontagemComiteComponent implements OnInit {
   readonly nome = signal('');
   readonly area = signal('');
   readonly descricao = signal('');
+  readonly exibirGraficos = signal(true);
 
   // Passo 2
   readonly busca = signal('');
@@ -174,6 +177,7 @@ export class MontagemComiteComponent implements OnInit {
     this.nome.set(comite.nome);
     this.area.set(comite.area ?? '');
     this.descricao.set(comite.descricao ?? '');
+    this.exibirGraficos.set(comite.exibirGraficos);
 
     const responsaveis = comite.responsaveis ?? [];
     this.consultoriaIds.set(
@@ -218,6 +222,7 @@ export class MontagemComiteComponent implements OnInit {
       nome: this.nome().trim(),
       area: this.area().trim() || undefined,
       descricao: this.descricao().trim() || undefined,
+      exibirGraficos: this.exibirGraficos(),
       consultoriaIds: this.consultoriaIds(),
       backupIds: this.backupIds(),
       participanteIds: this.escolhidos().map((pessoa) => pessoa.id),

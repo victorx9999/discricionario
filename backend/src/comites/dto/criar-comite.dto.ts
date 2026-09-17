@@ -3,6 +3,7 @@ import { Transform } from 'class-transformer';
 import {
   ArrayUnique,
   IsArray,
+  IsBoolean,
   IsInt,
   IsOptional,
   IsString,
@@ -47,6 +48,14 @@ export class CriarComiteDto {
   @IsString()
   @MaxLength(400)
   descricao?: string;
+
+  @ApiPropertyOptional({
+    default: true,
+    description: 'Se a consultoria vê os gráficos de RV/Total Cash de cada participante',
+  })
+  @IsOptional()
+  @IsBoolean()
+  exibirGraficos?: boolean;
 
   @ApiPropertyOptional({
     type: [String],

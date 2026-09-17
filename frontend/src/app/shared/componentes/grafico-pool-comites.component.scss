@@ -1,0 +1,106 @@
+.grafico-pool {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.legenda {
+  display: flex;
+  gap: 16px;
+  font-size: 0.8rem;
+  color: var(--app-muted);
+}
+
+.chave {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.amostra {
+  display: inline-block;
+  width: 12px;
+  height: 8px;
+  border-radius: 2px;
+
+  &.trilha {
+    background: var(--app-surface-3);
+  }
+
+  &.preenchido.ok {
+    background: var(--app-brand);
+  }
+}
+
+.linha {
+  display: grid;
+  grid-template-columns: minmax(120px, 220px) 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  align-items: center;
+}
+
+.rotulo {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  font-size: 0.85rem;
+  color: var(--app-ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trilha {
+  grid-column: 2;
+  grid-row: 1;
+  height: 20px;
+  min-width: 40px;
+  background: var(--app-surface-3);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+
+  &.excedido {
+    box-shadow: inset 0 0 0 1px var(--app-neg);
+  }
+}
+
+.preenchido {
+  height: 100%;
+  border-radius: 4px 2px 2px 4px;
+  transition: width 0.2s ease;
+
+  &.ok {
+    background: var(--app-brand);
+  }
+
+  &.atencao {
+    background: var(--app-warn);
+  }
+
+  &.critico {
+    background: var(--app-neg);
+  }
+}
+
+.valores {
+  grid-column: 2;
+  grid-row: 2;
+  font-size: 0.78rem;
+  color: var(--app-muted);
+  font-variant-numeric: tabular-nums;
+
+  b {
+    color: var(--app-ink-2);
+
+    &.critico {
+      color: var(--app-neg);
+    }
+  }
+}
+
+.sub {
+  color: var(--app-muted);
+  font-size: 0.85rem;
+  margin: 0;
+}

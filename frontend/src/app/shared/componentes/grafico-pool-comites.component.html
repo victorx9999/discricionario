@@ -1,0 +1,27 @@
+<div class="grafico-pool">
+  <div class="legenda">
+    <span class="chave"><i class="amostra trilha"></i> Pool disponível (teto)</span>
+    <span class="chave"><i class="amostra preenchido ok"></i> Consumido</span>
+  </div>
+
+  @for (linha of linhas(); track linha.comiteId) {
+    <div class="linha">
+      <span class="rotulo" [title]="linha.grupoRanking">{{ linha.grupoRanking }}</span>
+      <div class="trilha" [style.width.%]="linha.trilhaPct" [class.excedido]="linha.excedido">
+        <div
+          class="preenchido"
+          [class.ok]="linha.severidade === 'ok'"
+          [class.atencao]="linha.severidade === 'atencao'"
+          [class.critico]="linha.severidade === 'critico'"
+          [style.width.%]="linha.preenchidoPct"
+        ></div>
+      </div>
+      <span class="valores">
+        {{ linha.poolConsumido | moeda }} de {{ linha.poolDisponivel | moeda }}
+        <b [class.critico]="linha.excedido">({{ linha.percentualUtilizado | number: '1.0-1' }}%)</b>
+      </span>
+    </div>
+  } @empty {
+    <p class="sub">Selecione ao menos um comitê para ver o pool.</p>
+  }
+</div>

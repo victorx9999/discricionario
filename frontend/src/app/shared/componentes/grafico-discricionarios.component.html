@@ -1,0 +1,15 @@
+<div class="grafico-discricionarios">
+  @if (total() === 0) {
+    <p class="sub">Nenhum discricionário lançado nos comitês selecionados.</p>
+  } @else {
+    @for (barra of barras(); track barra.rotulo) {
+      <div class="linha">
+        <span class="rotulo">{{ barra.rotulo }}</span>
+        <div class="trilha">
+          <div class="preenchido" [class]="barra.classe" [style.width.%]="barra.larguraPct"></div>
+        </div>
+        <span class="valor">{{ barra.valor }}</span>
+      </div>
+    }
+  }
+</div>

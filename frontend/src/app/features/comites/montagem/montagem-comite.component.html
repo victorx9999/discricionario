@@ -64,6 +64,13 @@
           ></textarea>
         </mat-form-field>
 
+        <mat-checkbox
+          [checked]="exibirGraficos()"
+          (change)="exibirGraficos.set($event.checked)"
+        >
+          Mostrar para a consultoria os gráficos de RV / Total Cash de cada participante
+        </mat-checkbox>
+
         <div class="aviso atencao">
           <span>i</span>
           <span>
