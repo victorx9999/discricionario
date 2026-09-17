@@ -80,6 +80,9 @@
     max-width: 340px;
     overflow: hidden;
     text-overflow: ellipsis;
+
+    &.positivo { color: var(--app-pos); }
+    &.negativo { color: var(--app-neg); }
   }
 }
 

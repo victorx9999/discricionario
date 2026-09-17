@@ -10,6 +10,7 @@ import { Ciclo } from '../ciclos/entities/ciclo.entity';
 import { ResultadoPaginado, aplicarFiltros } from '../common/dto';
 import {
   AcaoAuditoria,
+  ModeloAvaliacao,
   OperacaoAuditoria,
   PapelResponsavel,
   StatusComite,
@@ -35,7 +36,7 @@ const CAMPOS_ORDENACAO: Record<string, string> = {
   atualizadoEm: 'comite.atualizadoEm',
 };
 
-const CAMPOS_AUDITADOS = ['nome', 'area', 'tipo', 'descricao'];
+const CAMPOS_AUDITADOS = ['nome', 'area', 'tipo', 'descricao', 'exibirGraficos'];
 
 @Injectable()
 export class ComitesService {
@@ -178,8 +179,11 @@ export class ComitesService {
           nome: dto.nome,
           grupoRanking: `${dto.codigo} - ${dto.nome}`,
           area: dto.area ?? null,
-          tipo: dto.tipo ?? TipoComite.MISTO,
+          // Provisório: recalculado logo abaixo a partir do MODELO_AVALIACAO
+          // dos participantes vinculados — nunca é escolhido manualmente.
+          tipo: TipoComite.MISTO,
           descricao: dto.descricao ?? null,
+          exibirGraficos: dto.exibirGraficos ?? true,
           status: StatusComite.EM_ANDAMENTO,
           criadoPorId: usuario.id,
         }),
@@ -192,6 +196,8 @@ export class ComitesService {
 
       if (dto.participanteIds?.length) {
         await this.vincular(manager, comite, ciclo, dto.participanteIds);
+        comite.tipo = await this.calcularTipo(comite.id, manager);
+        await manager.save(Comite, comite);
       }
 
       return comite;
@@ -235,6 +241,7 @@ export class ComitesService {
       area: comite.area,
       tipo: comite.tipo,
       descricao: comite.descricao,
+      exibirGraficos: comite.exibirGraficos,
     };
 
     await this.dataSource.transaction(async (manager) => {
@@ -243,8 +250,8 @@ export class ComitesService {
         comite.grupoRanking = `${comite.codigo} - ${dto.nome}`;
       }
       if (dto.area !== undefined) comite.area = dto.area;
-      if (dto.tipo !== undefined) comite.tipo = dto.tipo;
       if (dto.descricao !== undefined) comite.descricao = dto.descricao;
+      if (dto.exibirGraficos !== undefined) comite.exibirGraficos = dto.exibirGraficos;
 
       await manager.save(Comite, comite);
 
@@ -260,6 +267,8 @@ export class ComitesService {
 
       if (dto.participanteIds !== undefined) {
         await this.substituirParticipantes(manager, comite, ciclo, dto.participanteIds);
+        comite.tipo = await this.calcularTipo(id, manager);
+        await manager.save(Comite, comite);
       }
     });
 
@@ -275,7 +284,13 @@ export class ComitesService {
         contexto,
       },
       anterior,
-      { nome: comite.nome, area: comite.area, tipo: comite.tipo, descricao: comite.descricao },
+      {
+        nome: comite.nome,
+        area: comite.area,
+        tipo: comite.tipo,
+        descricao: comite.descricao,
+        exibirGraficos: comite.exibirGraficos,
+      },
       CAMPOS_AUDITADOS,
     );
 
@@ -431,9 +446,12 @@ export class ComitesService {
     this.ciclosService.garantirAberto(ciclo);
     this.garantirEditavel(comite);
 
-    const vinculados = await this.dataSource.transaction((manager) =>
-      this.vincular(manager, comite, ciclo, participanteIds),
-    );
+    const vinculados = await this.dataSource.transaction(async (manager) => {
+      const quantidade = await this.vincular(manager, comite, ciclo, participanteIds);
+      const tipo = await this.calcularTipo(id, manager);
+      await manager.update(Comite, id, { tipo });
+      return quantidade;
+    });
 
     const total = await this.participantes.count({ where: { comiteId: id } });
 
@@ -483,6 +501,9 @@ export class ComitesService {
       },
     );
 
+    const tipo = await this.calcularTipo(id);
+    await this.repositorio.update(id, { tipo });
+
     const total = await this.participantes.count({ where: { comiteId: id } });
 
     await this.auditoriaService.registrar({
@@ -516,6 +537,29 @@ export class ComitesService {
         { comiteId: comite.id },
       );
     }
+  }
+
+  /**
+   * O tipo do comitê nunca é escolhido manualmente: é sempre a composição de
+   * MODELO_AVALIACAO dos participantes vinculados no momento (seção 3.2).
+   * Sem participantes ainda, fica MISTO como neutro até alguém entrar.
+   */
+  private async calcularTipo(comiteId: string, manager?: EntityManager): Promise<TipoComite> {
+    const repositorio = manager ? manager.getRepository(Participante) : this.participantes;
+
+    const modelos = await repositorio
+      .createQueryBuilder('participante')
+      .select('DISTINCT participante.modeloAvaliacao', 'modeloAvaliacao')
+      .where('participante.comiteId = :comiteId', { comiteId })
+      .getRawMany<{ modeloAvaliacao: string | null }>();
+
+    const temInstitucional = modelos.some((m) => m.modeloAvaliacao === ModeloAvaliacao.INSTITUCIONAL);
+    const temComunidade = modelos.some((m) => m.modeloAvaliacao === ModeloAvaliacao.COMUNIDADE);
+
+    if (temInstitucional && temComunidade) return TipoComite.MISTO;
+    if (temComunidade) return TipoComite.COMUNIDADE;
+    if (temInstitucional) return TipoComite.INSTITUCIONAL;
+    return TipoComite.MISTO;
   }
 
   private montarResponsaveis(

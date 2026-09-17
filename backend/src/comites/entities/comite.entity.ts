@@ -74,6 +74,10 @@ export class Comite {
   @Column({ length: 400, nullable: true })
   descricao: string | null;
 
+  /** Decidido por quem monta o comitê: se a consultoria vê os gráficos de RV/Total Cash de cada participante. */
+  @Column({ name: 'exibir_graficos', default: true })
+  exibirGraficos: boolean;
+
   /** Registrado quando a conclusão foi feita com o pool estourado. */
   @Column({ name: 'concluido_com_pool_excedido', default: false })
   concluidoComPoolExcedido: boolean;

@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map, shareReplay } from 'rxjs';
 import {
   Ciclo,
+  ComparativoComites,
   Importacao,
   LayoutBase,
   Motivo,
@@ -161,9 +162,12 @@ export class ConsolidacaoService {
     return this.api.get<VisaoGeral>('consolidacao/visao-geral');
   }
 
-  comparativo(comiteIds: string[]): Observable<Record<string, unknown>> {
-    return this.api.get<Record<string, unknown>>('consolidacao/comparativo', {
-      comites: comiteIds,
+  comparativo(comiteIds: string[]): Observable<ComparativoComites> {
+    // A API espera os IDs juntos numa única string separada por vírgula — mandar
+    // como array faz o ApiService repetir o parâmetro (?comites=a&comites=b), que
+    // o backend não sabe interpretar.
+    return this.api.get<ComparativoComites>('consolidacao/comparativo', {
+      comites: comiteIds.join(','),
     });
   }
 

@@ -155,6 +155,7 @@ export class ConsolidacaoService {
       : todos;
 
     const resumos = await this.resumirTodos(selecionados, ciclo);
+    const discricionarios = await this.listarDiscricionarios(selecionados, ciclo);
 
     const consolidado = resumos.reduce(
       (acumulado, { resumo }) => ({
@@ -191,6 +192,11 @@ export class ConsolidacaoService {
         percentualUtilizado: resumo.pool.percentualUtilizado,
         performancePonderada: resumo.performancePonderada,
       })),
+      discricionarios: {
+        positivos: discricionarios.filter((item) => item.fd > 0).length,
+        negativos: discricionarios.filter((item) => item.fd < 0).length,
+      },
+      participantesComDiscricionario: discricionarios,
     };
   }
 
@@ -202,7 +208,13 @@ export class ConsolidacaoService {
   async discricionariosNominais(ano: number | undefined, usuario: UsuarioAutenticado) {
     const ciclo = await this.ciclosService.resolver(ano);
     const comites = await this.comitesVisiveis(ciclo, usuario);
-    if (!comites.length) return { ciclo: ciclo.ano, total: 0, itens: [] };
+    const itens = await this.listarDiscricionarios(comites, ciclo);
+    return { ciclo: ciclo.ano, total: itens.length, itens };
+  }
+
+  /** Discricionários lançados nos comitês informados — base do nominal e do comparativo. */
+  private async listarDiscricionarios(comites: Comite[], ciclo: Ciclo) {
+    if (!comites.length) return [];
 
     const participantes = await this.participantes.find({
       where: { cicloId: ciclo.id, comiteId: In(comites.map((comite) => comite.id)) },
@@ -211,7 +223,7 @@ export class ConsolidacaoService {
     });
 
     const premissas = this.resumoService.premissas(ciclo);
-    const itens = participantes
+    return participantes
       .filter((participante) => Number(participante.fd) !== 0)
       .map((participante) => {
         const elegiveis = (participante.acrescimos ?? []).filter((acrescimo) => acrescimo.elegivel);
@@ -236,8 +248,6 @@ export class ConsolidacaoService {
           pendente: participante.pendente,
         };
       });
-
-    return { ciclo: ciclo.ano, total: itens.length, itens };
   }
 
   // ------------------------------------------------------------------

@@ -3,7 +3,7 @@ import { Transform } from 'class-transformer';
 import {
   ArrayUnique,
   IsArray,
-  IsEnum,
+  IsBoolean,
   IsInt,
   IsOptional,
   IsString,
@@ -13,7 +13,6 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
-import { TipoComite } from '../../common/enums';
 
 export class CriarComiteDto {
   @ApiProperty({ example: '100702', description: 'Código do grupo' })
@@ -44,16 +43,19 @@ export class CriarComiteDto {
   @MaxLength(150)
   area?: string;
 
-  @ApiPropertyOptional({ enum: TipoComite, default: TipoComite.MISTO })
-  @IsOptional()
-  @IsEnum(TipoComite)
-  tipo?: TipoComite;
-
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   @MaxLength(400)
   descricao?: string;
+
+  @ApiPropertyOptional({
+    default: true,
+    description: 'Se a consultoria vê os gráficos de RV/Total Cash de cada participante',
+  })
+  @IsOptional()
+  @IsBoolean()
+  exibirGraficos?: boolean;
 
   @ApiPropertyOptional({
     type: [String],

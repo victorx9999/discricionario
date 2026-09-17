@@ -193,13 +193,13 @@
     </span>
   </div>
 } @else if (pendencias()) {
-  @if (pendencias()!.total > 0) {
+  @if (pendencias()!.bloqueiam.length > 0) {
     <div class="aviso atencao">
       <span>!</span>
       <span>
-        Faltam <b>{{ pendencias()!.total }}</b> pendência{{ pendencias()!.total === 1 ? '' : 's' }} para concluir:
-        @for (item of pendencias()!.itens; track item.participanteId) {
-          <br /><b>{{ item.nome }}</b> — {{ item.motivo }}
+        Falta{{ pendencias()!.bloqueiam.length === 1 ? '' : 'm' }} para concluir:
+        @for (motivo of pendencias()!.bloqueiam; track motivo) {
+          <br />{{ motivo }}
         }
       </span>
     </div>

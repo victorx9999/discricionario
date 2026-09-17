@@ -1,0 +1,51 @@
+.grafico-discricionarios {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.linha {
+  display: grid;
+  grid-template-columns: 90px 1fr 40px;
+  align-items: center;
+  gap: 12px;
+}
+
+.rotulo {
+  font-size: 0.85rem;
+  color: var(--app-ink-2);
+}
+
+.trilha {
+  height: 20px;
+  background: var(--app-surface-3);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.preenchido {
+  height: 100%;
+  border-radius: 4px 2px 2px 4px;
+  transition: width 0.2s ease;
+
+  &.positivo {
+    background: var(--app-pos);
+  }
+
+  &.negativo {
+    background: var(--app-neg);
+  }
+}
+
+.valor {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--app-ink);
+  text-align: right;
+}
+
+.sub {
+  color: var(--app-muted);
+  font-size: 0.85rem;
+  margin: 0;
+}

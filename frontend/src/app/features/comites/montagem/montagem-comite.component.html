@@ -38,27 +38,20 @@
           </mat-form-field>
         </div>
 
-        <div class="linha-campos">
-          <mat-form-field class="longo">
-            <mat-label>Área</mat-label>
-            <input
-              matInput
-              [value]="area()"
-              (input)="area.set($any($event.target).value)"
-              placeholder="Private Banking"
-              maxlength="150"
-            />
-          </mat-form-field>
-
-          <mat-form-field class="curto">
-            <mat-label>Tipo</mat-label>
-            <mat-select [value]="tipo()" (valueChange)="tipo.set($event)">
-              @for (opcao of tipos; track opcao) {
-                <mat-option [value]="opcao">{{ opcao }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-        </div>
+        <mat-form-field class="longo">
+          <mat-label>Área</mat-label>
+          <input
+            matInput
+            [value]="area()"
+            (input)="area.set($any($event.target).value)"
+            placeholder="Private Banking"
+            maxlength="150"
+          />
+        </mat-form-field>
+        <p class="sub">
+          O tipo do comitê (Institucional, Comunidade ou Misto) é definido automaticamente pelo
+          modelo de avaliação de quem está na lista de participantes — não precisa escolher aqui.
+        </p>
 
         <mat-form-field class="largo">
           <mat-label>Descrição</mat-label>
@@ -70,6 +63,13 @@
             maxlength="500"
           ></textarea>
         </mat-form-field>
+
+        <mat-checkbox
+          [checked]="exibirGraficos()"
+          (change)="exibirGraficos.set($event.checked)"
+        >
+          Mostrar para a consultoria os gráficos de RV / Total Cash de cada participante
+        </mat-checkbox>
 
         <div class="aviso atencao">
           <span>i</span>

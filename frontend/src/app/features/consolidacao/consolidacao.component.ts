@@ -1,3 +1,4 @@
+import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,7 +11,10 @@ import { CicloStore } from '../../core/ciclo/ciclo.store';
 import { ConsolidacaoService } from '../../core/http/catalogo.service';
 import { ComitesService } from '../../core/http/comites.service';
 import { erroApiDe } from '../../core/http/interceptors';
-import { mensagemDoErro, Comite } from '../../core/models/api.models';
+import { Comite, ComparativoComites, mensagemDoErro } from '../../core/models/api.models';
+import { GraficoDiscricionariosComponent } from '../../shared/componentes/grafico-discricionarios.component';
+import { GraficoPoolComitesComponent } from '../../shared/componentes/grafico-pool-comites.component';
+import { MoedaPipe } from '../../shared/pipes/formatos.pipe';
 
 /**
  * Tabela descoberta dentro de uma resposta sem contrato fixo.
@@ -39,6 +43,10 @@ interface ParValor {
     MatIconModule,
     MatProgressBarModule,
     MatSelectModule,
+    GraficoPoolComitesComponent,
+    GraficoDiscricionariosComponent,
+    MoedaPipe,
+    DecimalPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './consolidacao.component.html',
@@ -57,7 +65,7 @@ export class ConsolidacaoComponent implements OnInit {
 
   readonly carregandoComparativo = signal(false);
   readonly erroComparativo = signal<string | null>(null);
-  readonly dadoComparativo = signal<Record<string, unknown> | null>(null);
+  readonly dadoComparativo = signal<ComparativoComites | null>(null);
 
   readonly carregandoNominais = signal(false);
   readonly erroNominais = signal<string | null>(null);
@@ -67,19 +75,28 @@ export class ConsolidacaoComponent implements OnInit {
   readonly erroGrupos = signal<string | null>(null);
   readonly dadoGrupos = signal<Record<string, unknown> | null>(null);
 
-  // A chave "comites" é a esperada no comparativo; nas outras abas a tela procura
-  // a primeira lista de objetos que a resposta trouxer.
-  readonly tabelaComparativo = computed(() => tabelaDe(this.dadoComparativo(), 'comites'));
+  // Nas outras duas abas a tela procura a primeira lista de objetos que a
+  // resposta trouxer — o comparativo agora tem contrato próprio e tipado.
   readonly tabelaNominais = computed(() => tabelaDe(this.dadoNominais()));
   readonly tabelaGrupos = computed(() => tabelaDe(this.dadoGrupos()));
 
-  readonly resumoComparativo = computed(() => escalaresDe(this.dadoComparativo()));
   readonly resumoNominais = computed(() => escalaresDe(this.dadoNominais()));
   readonly resumoGrupos = computed(() => escalaresDe(this.dadoGrupos()));
 
-  readonly jsonComparativo = computed(() => paraJson(this.dadoComparativo()));
   readonly jsonNominais = computed(() => paraJson(this.dadoNominais()));
   readonly jsonGrupos = computed(() => paraJson(this.dadoGrupos()));
+
+  readonly poolPorComite = computed(
+    () =>
+      this.dadoComparativo()?.comites.map((comite) => ({
+        comiteId: comite.comiteId,
+        grupoRanking: comite.grupoRanking ?? comite.comiteId,
+        poolDisponivel: comite.poolDisponivel,
+        poolConsumido: comite.poolConsumido,
+        percentualUtilizado: comite.percentualUtilizado,
+        excedido: comite.excedido,
+      })) ?? [],
+  );
 
   ngOnInit(): void {
     this.carregarComites();

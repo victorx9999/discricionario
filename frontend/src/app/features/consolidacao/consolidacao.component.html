@@ -61,61 +61,92 @@
             <mat-icon>error_outline</mat-icon>
             <span>{{ erroComparativo() }}</span>
           </div>
-        } @else if (dadoComparativo()) {
-          @if (vazio(dadoComparativo()!)) {
-            <p class="sub">A API respondeu sem conteúdo para os comitês selecionados.</p>
-          } @else {
-            <div class="bloco">
-              @if (resumoComparativo().length > 0) {
-                <div class="kpis">
-                  @for (par of resumoComparativo(); track par.chave) {
-                    <div class="kpi">
-                      <span class="rotulo">{{ par.chave }}</span>
-                      <span class="valor">{{ par.valor }}</span>
-                    </div>
-                  }
-                </div>
-              }
-
-              @if (tabelaComparativo(); as tabela) {
-                <div class="bloco-titulo sub-titulo">
-                  <span>Linhas encontradas</span>
-                  <small class="mono">chave "{{ tabela.origem }}" · {{ tabela.linhas.length }} linha(s)</small>
-                </div>
-                <div class="rolar">
-                  <table class="tabela-bruta">
-                    <thead>
-                      <tr>
-                        @for (coluna of tabela.colunas; track coluna) {
-                          <th>{{ coluna }}</th>
-                        }
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (linha of tabela.linhas; track $index) {
-                        <tr>
-                          @for (coluna of tabela.colunas; track coluna) {
-                            <td>{{ celula(linha, coluna) }}</td>
-                          }
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              } @else {
-                <div class="aviso atencao">
-                  <mat-icon>info</mat-icon>
-                  <span>
-                    A resposta não trouxe nenhuma lista de registros que a tela saiba tabular. O
-                    formato exato deste endpoint depende da API — abaixo está o retorno bruto.
-                  </span>
-                </div>
-                <pre class="json">{{ jsonComparativo() }}</pre>
-              }
-            </div>
-          }
-        } @else {
+        } @else if (dadoComparativo() === null) {
           <p class="sub">Selecione os comitês e clique em Comparar.</p>
+        } @else {
+          @let dado = dadoComparativo()!;
+
+          <div class="bloco">
+            <div class="kpis">
+              <div class="kpi">
+                <span class="rotulo">Participantes</span>
+                <span class="valor">{{ dado.consolidado.participantes }}</span>
+              </div>
+              <div class="kpi">
+                <span class="rotulo">Pool disponível</span>
+                <span class="valor">{{ dado.consolidado.poolDisponivel | moeda }}</span>
+              </div>
+              <div class="kpi">
+                <span class="rotulo">Pool consumido</span>
+                <span class="valor">{{ dado.consolidado.poolConsumido | moeda }}</span>
+              </div>
+              <div class="kpi">
+                <span class="rotulo">Saldo</span>
+                <span class="valor" [class.negativo]="dado.consolidado.saldo < 0">
+                  {{ dado.consolidado.saldo | moeda }}
+                </span>
+              </div>
+              <div class="kpi">
+                <span class="rotulo">% utilizado</span>
+                <span class="valor">{{ dado.consolidado.percentualUtilizado | number: '1.0-1' }}%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bloco">
+            <div class="bloco-titulo">
+              <span>Pool por comitê</span>
+              <small>disponível x consumido</small>
+            </div>
+            <app-grafico-pool-comites [dados]="poolPorComite()" />
+          </div>
+
+          <div class="bloco">
+            <div class="bloco-titulo">
+              <span>Discricionários lançados</span>
+              <small>positivos x negativos</small>
+            </div>
+            <app-grafico-discricionarios [dados]="dado.discricionarios" />
+          </div>
+
+          <div class="bloco">
+            <div class="bloco-titulo">
+              <span>Participantes com discricionário</span>
+              <small>{{ dado.participantesComDiscricionario.length }} lançamento(s)</small>
+            </div>
+            @if (dado.participantesComDiscricionario.length > 0) {
+              <div class="rolar">
+                <table class="tabela-bruta">
+                  <thead>
+                    <tr>
+                      <th>Nome</th>
+                      <th>Funcional</th>
+                      <th>Comitê</th>
+                      <th>FD</th>
+                      <th>Motivo</th>
+                      <th>Justificativa</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of dado.participantesComDiscricionario; track item.participanteId) {
+                      <tr>
+                        <td>{{ item.nome }}</td>
+                        <td class="mono">{{ item.emplid }}</td>
+                        <td>{{ item.comite }}</td>
+                        <td [class.negativo]="item.fd < 0" [class.positivo]="item.fd > 0">
+                          {{ item.fdPp }}
+                        </td>
+                        <td>{{ item.motivo ?? '—' }}</td>
+                        <td>{{ item.justificativa ?? '—' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <p class="sub">Nenhum discricionário lançado nos comitês selecionados.</p>
+            }
+          </div>
         }
       </div>
     </mat-tab>

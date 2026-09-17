@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -19,7 +20,6 @@ import {
   LayoutComite,
   mensagemDoErro,
   ParticipanteLinha,
-  TipoComite,
   Usuario,
 } from '../../../core/models/api.models';
 import { PersonalizarComiteComponent } from '../../../shared/componentes/personalizar-comite.component';
@@ -43,6 +43,7 @@ import { MoedaPipe } from '../../../shared/pipes/formatos.pipe';
     MatInputModule,
     MatSelectModule,
     MatButtonModule,
+    MatCheckboxModule,
     MatIconModule,
     MatProgressSpinnerModule,
     PersonalizarComiteComponent,
@@ -61,8 +62,6 @@ export class MontagemComiteComponent implements OnInit {
   private readonly snackbar = inject(MatSnackBar);
   readonly ciclos = inject(CicloStore);
 
-  readonly tipos: TipoComite[] = ['INSTITUCIONAL', 'COMUNIDADE', 'MISTO'];
-
   readonly comiteId = signal<string | null>(null);
   readonly editando = computed(() => this.comiteId() !== null);
 
@@ -70,8 +69,8 @@ export class MontagemComiteComponent implements OnInit {
   readonly codigo = signal('');
   readonly nome = signal('');
   readonly area = signal('');
-  readonly tipo = signal<TipoComite>('INSTITUCIONAL');
   readonly descricao = signal('');
+  readonly exibirGraficos = signal(true);
 
   // Passo 2
   readonly busca = signal('');
@@ -177,8 +176,8 @@ export class MontagemComiteComponent implements OnInit {
     this.codigo.set(comite.codigo);
     this.nome.set(comite.nome);
     this.area.set(comite.area ?? '');
-    this.tipo.set(comite.tipo);
     this.descricao.set(comite.descricao ?? '');
+    this.exibirGraficos.set(comite.exibirGraficos);
 
     const responsaveis = comite.responsaveis ?? [];
     this.consultoriaIds.set(
@@ -222,8 +221,8 @@ export class MontagemComiteComponent implements OnInit {
       codigo: this.codigo().trim(),
       nome: this.nome().trim(),
       area: this.area().trim() || undefined,
-      tipo: this.tipo(),
       descricao: this.descricao().trim() || undefined,
+      exibirGraficos: this.exibirGraficos(),
       consultoriaIds: this.consultoriaIds(),
       backupIds: this.backupIds(),
       participanteIds: this.escolhidos().map((pessoa) => pessoa.id),

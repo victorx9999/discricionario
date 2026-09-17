@@ -110,7 +110,7 @@ export class AbaAtaComponent implements OnInit {
       this.temDataEHora() &&
       this.presentes().length > 0 &&
       pendencias !== null &&
-      pendencias.total === 0
+      pendencias.podeConcluir
     );
   });
 
